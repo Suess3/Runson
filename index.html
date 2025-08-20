@@ -34,7 +34,7 @@
     .panel{border:1px solid var(--line); border-radius:6px; padding:12px; background:#fff; margin-bottom:12px}
 
     label{display:block; margin:8px 0 4px; color:var(--muted); font-weight:600}
-    input, select, textarea{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink)}
+    input, select, textarea{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; color:#000}
     textarea{min-height:80px; resize:vertical}
 
     .row{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap}
@@ -102,6 +102,7 @@
           <div id="cloudMsg" class="muted" style="padding-left:6px"></div>
         </div>
       </details>
+      <footer class="signature">Made by Johannes</footer>
     </section>
 
     <!-- RUN -->
@@ -142,6 +143,7 @@
         <button class="btn primary" id="saveRunBtn">Save run</button>
         <div id="saveMsg" class="muted" aria-live="polite" style="padding-left:6px"></div>
       </div>
+      <footer class="signature">Made by Johannes</footer>
     </section>
 
     <!-- STATS -->
@@ -184,6 +186,7 @@
           <tbody id="runsTable"></tbody>
         </table>
       </div>
+      <footer class="signature">Made by Johannes</footer>
     </section>
 
     <!-- TRACKS (add new tracks) -->
@@ -216,9 +219,8 @@
           <tbody id="tracksTable"></tbody>
         </table>
       </div>
+      <footer class="signature">Made by Johannes</footer>
     </section>
-
-    <footer class="signature">Made by Johannes</footer>
   </div>
 
 <script type="module">
@@ -248,7 +250,7 @@ const db = getFirestore(app);
  ***********************/
 const LS_KEYS = { tracks:'runlog.tracks', runs:'runlog.runs', goals:'runlog.goals', sync:'runlog.sync' };
 const $ = sel => document.querySelector(sel);
-const Router = { go(v){ location.hash=v; }, current(){ return location.hash.replace('#','')||'home'; } };
+const Router = { go(v){ location.hash = v; }, current(){ return location.hash.replace('#','') || 'home'; } };
 window.addEventListener('hashchange', render);
 
 function loadJson(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? structuredClone(fallback); } catch{ return structuredClone(fallback); } }
@@ -256,7 +258,7 @@ function saveJson(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 function pad(n){ return String(n).padStart(2,'0'); }
 function fmtSec(sec){ if(!isFinite(sec)||sec<=0) return '–'; const m=Math.floor(sec/60), s=Math.round(sec%60); return `${m}:${pad(s)}`; }
 
-/* === Fixed parsing: treat "11.45" or "11,45" as 11:45 (only when RHS has exactly 2 digits and < 60). */
+/* === Fixed parsing: treat "11.45" or "11,45" as 11:45 (when RHS has exactly 2 digits and <60). */
 function parseTimeToSec(input){
   if(input == null) return NaN;
   const s = String(input).trim().toLowerCase();
@@ -274,7 +276,7 @@ function parseTimeToSec(input){
     if(parts.length===2){
       const mm = parseInt(parts[0],10);
       const ssStr = parts[1];
-      if(/^\d{2}$/.test(ssStr)){ // exactly 2 digits
+      if(/^\d{2}$/.test(ssStr)){
         const ss = parseInt(ssStr,10);
         if(ss >= 0 && ss < 60 && isFinite(mm)) return mm*60 + ss;
       }
@@ -309,12 +311,19 @@ const defaults=[ {id:'trattbergrunde', name:'Trattbergrunde', distanceKm:2.1}, {
 if(!state.tracks.length){ state.tracks = defaults; saveJson(LS_KEYS.tracks, state.tracks); }
 else { let changed=false; for(const t of defaults){ if(!state.tracks.find(x=>x.id===t.id)){ state.tracks.push(t); changed=true; } } if(changed) saveJson(LS_KEYS.tracks, state.tracks); }
 
-// Views & elements
-const views = { home: $('#view-home'), run: $('#view-run'), stats: $('#view-stats'), tracks: $('#view-tracks') };
-$('#navHome').onclick = () => Router.go('home');
-$('#navRun').onclick  = () => Router.go('run');
-$('#navStats').onclick= () => Router.go('stats');
-$('#navTracks').onclick= () => Router.go('tracks');
+/***************
+ * View wiring
+ ***************/
+const views = {
+  home:  $('#view-home'),
+  run:   $('#view-run'),
+  stats: $('#view-stats'),
+  tracks:$('#view-tracks')
+};
+$('#navHome').onclick   = () => Router.go('home');
+$('#navRun').onclick    = () => Router.go('run');
+$('#navStats').onclick  = () => Router.go('stats');
+$('#navTracks').onclick = () => Router.go('tracks');
 
 const trackSelect = $('#trackSelect');
 const distanceInput = $('#distance');
@@ -360,7 +369,7 @@ function setRunDefaults(){
 function updatePacePreview(){
   const t=state.tracks.find(x=>x.id===trackSelect.value);
   const sec=parseTimeToSec(timeInput.value);
-  paceInput.value=isFinite(sec)? paceMinPerKm(sec, t?.distanceKm ?? 1):'–';
+  paceInput.value=isFinite(sec) && t ? paceMinPerKm(sec, t.distanceKm) : '–';
 }
 timeInput.addEventListener('input', updatePacePreview);
 trackSelect.addEventListener('change', setRunDefaults);
@@ -406,7 +415,11 @@ async function connectCloud(){
 async function pushToCloud(){
   if(!fb.connected || !fb.docRef) return;
   try{
-    await setDoc(fb.docRef, { tracks: state.tracks, runs: state.runs, goals: state.g oals, updatedAt: serverTimestamp() }, { merge:true });
+    await setDoc(
+      fb.docRef,
+      { tracks: state.tracks, runs: state.runs, goals: state.goals, updatedAt: serverTimestamp() },
+      { merge:true }
+    );
   }catch(e){ console.warn('pushToCloud', e); }
 }
 connectCloudBtn?.addEventListener('click', connectCloud);
@@ -459,7 +472,7 @@ function renderTracks(){
   }).join('');
   tracksTableBody.innerHTML = rows || `<tr><td colspan="3" class="muted">No tracks yet.</td></tr>`;
 }
-addTrackBtn.addEventListener('click', async ()=>{
+addTrackBtn?.addEventListener('click', async ()=>{
   const name = (newTrackName.value||'').trim();
   const km = parseFloat((newTrackKm.value||'').replace(',','.'));
   if(!name){ trackMsg.textContent='Enter a name.'; return; }
@@ -479,7 +492,12 @@ addTrackBtn.addEventListener('click', async ()=>{
  ***********************/
 function renderStats(){
   const t=state.tracks.find(x=>x.id===trackStatsSelect.value);
-  if(!t){ runsTableBody.innerHTML=''; bestTimeEl.textContent=avgTimeEl.textContent=lastTimeEl.textContent=gapToGoalEl.textContent='–'; drawChart([], 9*60); return; }
+  if(!t){
+    runsTableBody.innerHTML='';
+    bestTimeEl.textContent=avgTimeEl.textContent=lastTimeEl.textContent=gapToGoalEl.textContent='–';
+    drawChart([], 9*60);
+    return;
+  }
   const goal = state.goals[t.id] ?? 9*60;
   goalInput.value = fmtSec(goal);
 
@@ -519,8 +537,8 @@ function drawChart(rows, goalSec){
   const ctx=chartCanvas.getContext('2d');
   const DPR=window.devicePixelRatio||1;
 
-  const w=chartCanvas.clientWidth*DPR;
-  const h=chartCanvas.clientHeight*DPR;
+  const w=Math.max(1, chartCanvas.clientWidth*DPR);
+  const h=Math.max(1, chartCanvas.clientHeight*DPR);
   if(chartCanvas.width!==w) chartCanvas.width=w;
   if(chartCanvas.height!==h) chartCanvas.height=h;
   ctx.clearRect(0,0,w,h);
@@ -530,7 +548,7 @@ function drawChart(rows, goalSec){
   const minT=rows.length?Math.min(...times, goalSec):8*60;
   const maxT=rows.length?Math.max(...times, goalSec):14*60;
   const y0=Math.max(0, Math.floor((minT-45)/30)*30);
-  const y1=Math.ceil((maxT+45)/30)*30;
+  const y1=Math.ceil((maxT+45)/30)*30);
 
   // Measure widest Y label
   const labels=[];
@@ -545,7 +563,7 @@ function drawChart(rows, goalSec){
   const padR = 16*DPR, padT = 22*DPR, padB = 42*DPR;
   const pw=w-padL-padR, ph=h-padT-padB;
   const X=i => padL + (rows.length<=1? pw/2 : i*(pw/(rows.length-1)));
-  const Y:s => padT + (1 - (s - y0)/(y1 - y0)) * ph;
+  const Y=s => padT + (1 - (s - y0)/(y1 - y0)) * ph;
 
   // Grid
   ctx.save();
