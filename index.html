@@ -4,101 +4,54 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#0b1222" />
-  <title>Run Tracker — Trattbergrunde & Lemprunde</title>
+  <title>Run Tracker</title>
   <style>
-    /* =====================
-       MOBILE‑FIRST DESIGN
-       ===================== */
-    :root {
-      --bg: #0b1222;          /* deep indigo */
-      --bg2:#0f172a;          /* slate */
-      --card:#0d1428;         /* panel */
-      --muted:#96a3b8;        /* slate-400 */
-      --text:#e6e7eb;         /* gray-200 */
-      --accent:#22c55e;       /* green-500 */
-      --accent-2:#38bdf8;     /* sky-400 */
-      --danger:#ef4444;       /* red-500 */
-      --border:#1f2937;       /* gray-800 */
-      --radius: 14px;
-      --space: 14px;
-      --container-w: min(100%, 720px);
-      --vh: 100vh;            /* updated via JS for mobile chrome */
+    :root{
+      --bg:#0b1222; --bg2:#0f172a; --card:#0d1428; --text:#e6e7eb; --muted:#96a3b8; --border:#1f2937; --accent:#22c55e; --accent2:#38bdf8; --danger:#ef4444; --radius:14px; --space:14px;
+      --container-w:min(100%,760px);
     }
-
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--text);
-      /* responsive background that subtly adapts to height */
-      background: radial-gradient(1200px 60vh at 70% -20vh, var(--bg2) 0%, #0b1222 40%, var(--bg) 70%);
-      background-attachment: fixed;
-    }
-    @media (prefers-color-scheme: light){
-      :root{ --bg:#f7fafc; --bg2:#e9eef6; --card:#ffffff; --text:#0f172a; --muted:#475569; --border:#e5e7eb; }
-      body{ background: linear-gradient(180deg, var(--bg2), var(--bg)); }
-    }
-
-    /* layout */
-    .wrap { max-width: var(--container-w); margin: 0 auto; padding: calc(var(--space) * 1.2); }
-    .nav { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom: var(--space); }
-    .title { font-size: clamp(18px, 5vw, 22px); margin:0; font-weight:700; letter-spacing:.2px; }
-    .subtle { color: var(--muted); font-weight:500; }
-
-    .tabs { display:flex; gap:8px; }
-    .btn { -webkit-tap-highlight-color: transparent; cursor:pointer; border:1px solid var(--border); background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:600; }
-    .btn:active { transform: translateY(1px); }
-    .btn-primary { background:linear-gradient(180deg, #176236, #0f4a29); border-color:#174b2f; }
-
-    .card { background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border:1px solid var(--border); border-radius: var(--radius); padding: calc(var(--space) * 1.1); box-shadow: 0 10px 30px rgba(0,0,0,.28); }
-
-    .stack { display:flex; flex-direction:column; gap: 12px; }
-    .row { display:flex; gap: 12px; }
-    .row.wrap { flex-wrap: wrap; }
-    .grow { flex: 1 1 160px; }
-
-    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px; }
-    input, select, textarea { width:100%; padding:12px; border-radius:12px; background: #0a1326; color: var(--text); border:1px solid var(--border); outline:none; }
-    textarea { resize: vertical; min-height: 84px; }
-
-    /* form width caps to avoid edge-to-edge stretching on phones */
-    .cap { max-width: 520px; }
-    .cap-sm { max-width: 360px; }
-
-    .pill { align-self:flex-start; font-size:12px; color:var(--muted); border:1px solid var(--border); background:#0b1222; padding:8px 10px; border-radius:999px; }
-
-    /* table (stats) */
-    table { width:100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align:left; }
-
-    /* chart responsive height */
-    #chart { width:100%; height: 32vh; min-height: 230px; max-height: 420px; display:block; border:1px solid var(--border); border-radius: var(--radius); background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.00)); }
-
-    .legend { display:flex; gap:12px; align-items:center; flex-wrap: wrap; margin-top: 6px; font-size:12px; color:var(--muted); }
-    .dot { width:10px; height:10px; border-radius: 50%; display:inline-block; }
-
-    .footer { color:var(--muted); font-size:12px; margin-top: 12px; text-align:center; }
-
-    /* larger screens: gently center and widen */
-    @media (min-width: 760px){
-      .wrap { padding: 24px; }
-      .card { padding: 18px; }
-      #chart { height: 360px; }
-    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto; color:var(--text); background:radial-gradient(1200px 60vh at 70% -20vh,var(--bg2) 0%, #0b1222 40%, var(--bg) 70%);}
+    .wrap{max-width:var(--container-w); margin:0 auto; padding:calc(var(--space)*1.1)}
+    header.nav{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:var(--space)}
+    .title{margin:0; font-size:clamp(18px,5vw,22px)}
+    .tabs{display:flex; gap:8px}
+    .btn{cursor:pointer; -webkit-tap-highlight-color:transparent; border:1px solid var(--border); background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01)); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:600}
+    .btn:active{transform:translateY(1px)}
+    .btn-primary{background:linear-gradient(180deg,#176236,#0f4a29); border-color:#174b2f}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid var(--border); border-radius:var(--radius); padding:calc(var(--space)*1.1); box-shadow:0 10px 30px rgba(0,0,0,.28); margin-bottom:12px}
+    .stack{display:flex; flex-direction:column; gap:12px}
+    .row{display:flex; gap:12px}
+    .row.wrap{flex-wrap:wrap}
+    .grow{flex:1 1 160px}
+    label{font-size:12px; color:var(--muted); margin-bottom:6px; display:block}
+    input,select,textarea{width:100%; padding:12px; border-radius:12px; background:#0a1326; color:var(--text); border:1px solid var(--border); outline:none}
+    textarea{resize:vertical; min-height:84px}
+    .hidden{display:none !important}
+    .muted{color:var(--muted)}
+    .pill{align-self:flex-start; font-size:12px; color:var(--muted); border:1px solid var(--border); background:#0b1222; padding:8px 10px; border-radius:999px}
+    .cap{max-width:520px}
+    .cap-sm{max-width:360px}
+    table{width:100%; border-collapse:collapse; font-size:13px}
+    th,td{padding:10px 8px; border-bottom:1px solid var(--border); text-align:left}
+    #chart{width:100%; height:32vh; min-height:230px; max-height:420px; border:1px solid var(--border); border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0))}
+    .footer{color:var(--muted); font-size:12px; text-align:center; margin-top:10px}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header class="nav">
-      <h1 class="title">🏃‍♂️ Run Tracker <span class="subtle">Trattbergrunde 2.1 km • Lemprunde 1.13 km</span></h1>
+      <h1 class="title">🏃‍♂️ Run Tracker</h1>
       <nav class="tabs">
-        <button class="btn" id="homeBtn">Home</button>
-        <button class="btn" id="runBtn">Run</button>
-        <button class="btn" id="statsBtn">Stats</button>
+        <button class="btn" id="navHome">Home</button>
+        <button class="btn" id="navRun">Run</button>
+        <button class="btn" id="navStats">Stats</button>
+        <button class="btn" id="navTracks">Tracks</button>
       </nav>
     </header>
 
-    <!-- HOME -->
+    <!-- HOME (only Start + Stats) -->
     <section id="view-home" class="card stack">
       <div class="pill">Start</div>
       <button class="btn btn-primary" onclick="Router.go('run')">➕ Start a run</button>
@@ -115,11 +68,11 @@
         </div>
         <div class="grow cap-sm">
           <label for="distance">Distance (km)</label>
-          <input id="distance" type="number" step="0.01" min="0" disabled />
+          <input id="distance" disabled>
         </div>
         <div class="grow cap-sm">
           <label for="attempts">Logged attempts</label>
-          <input id="attempts" type="number" disabled />
+          <input id="attempts" disabled>
         </div>
       </div>
 
@@ -127,15 +80,15 @@
       <div class="row wrap cap">
         <div class="grow cap-sm">
           <label for="timeInput">Time (mm:ss or mm)</label>
-          <input id="timeInput" type="text" inputmode="numeric" placeholder="e.g. 09:00" />
+          <input id="timeInput" type="text" inputmode="numeric" placeholder="e.g. 09:00">
         </div>
         <div class="grow cap-sm">
           <label for="pace">Pace (min/km)</label>
-          <input id="pace" type="text" disabled />
+          <input id="pace" disabled>
         </div>
         <div class="grow cap-sm">
           <label for="dateAuto">Date</label>
-          <input id="dateAuto" type="text" disabled />
+          <input id="dateAuto" disabled>
         </div>
       </div>
       <div class="cap">
@@ -144,7 +97,7 @@
       </div>
       <div class="row cap">
         <button class="btn btn-primary" id="saveRunBtn">Save run</button>
-        <div id="saveMsg" class="subtle" aria-live="polite" style="align-self:center"></div>
+        <div id="saveMsg" class="muted" aria-live="polite" style="align-self:center"></div>
       </div>
     </section>
 
@@ -165,104 +118,113 @@
         </div>
       </div>
 
-      <!-- KPIs -->
       <div class="row wrap cap">
         <div class="grow card" style="padding:12px; background:#0a1226;">
-          <div class="subtle" style="font-size:12px;">Best time</div>
+          <div class="muted" style="font-size:12px;">Best</div>
           <div style="font-weight:800; font-size:20px;" id="bestTime">–</div>
         </div>
         <div class="grow card" style="padding:12px; background:#0a1226;">
-          <div class="subtle" style="font-size:12px;">Average time</div>
+          <div class="muted" style="font-size:12px;">Average</div>
           <div style="font-weight:800; font-size:20px;" id="avgTime">–</div>
         </div>
         <div class="grow card" style="padding:12px; background:#0a1226;">
-          <div class="subtle" style="font-size:12px;">Last run</div>
+          <div class="muted" style="font-size:12px;">Last</div>
           <div style="font-weight:800; font-size:20px;" id="lastTime">–</div>
         </div>
         <div class="grow card" style="padding:12px; background:#0a1226;">
-          <div class="subtle" style="font-size:12px;">Gap to goal</div>
+          <div class="muted" style="font-size:12px;">Gap to goal</div>
           <div style="font-weight:800; font-size:20px;" id="gapToGoal">–</div>
         </div>
       </div>
 
-      <!-- Chart -->
       <canvas id="chart" aria-label="Progress chart"></canvas>
-      <div class="legend">
-        <span class="dot" style="background:var(--accent)"></span>Run
-        <span class="dot" style="background:var(--accent-2)"></span>Goal
-        <span class="dot" style="background:var(--danger)"></span>Above goal
-        <span class="dot" style="background:var(--accent)"></span>At/under goal
-      </div>
+      <div class="muted" style="font-size:12px;">Green = at/under goal, Red = above goal. Dashed line = goal.</div>
 
-      <!-- Table -->
       <div class="card" style="background:#0a1226;">
-        <div class="subtle" style="margin-bottom:8px;">All entries</div>
+        <div class="muted" style="margin-bottom:8px;">All entries</div>
         <div style="overflow:auto; -webkit-overflow-scrolling: touch;">
-          <table id="runsTable">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Pace</th>
-                <th>Δ goal</th>
-                <th>Note</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
+          <table>
+            <thead><tr><th>Date</th><th>Time</th><th>Pace</th><th>Δ goal</th><th>Note</th></tr></thead>
+            <tbody id="runsTable"></tbody>
           </table>
         </div>
       </div>
     </section>
 
-    <p class="footer">Data stays on your phone (localStorage). Single file, offline ready.</p>
+    <!-- TRACKS (add/manage) -->
+    <section id="view-tracks" class="card stack hidden">
+      <span class="pill">🛠️ Tracks</span>
+      <div class="cap">
+        <label for="newTrackName">Track name</label>
+        <input id="newTrackName" placeholder="e.g. Prater Runde" />
+      </div>
+      <div class="row cap">
+        <div class="grow cap-sm">
+          <label for="newTrackDist">Distance (km)</label>
+          <input id="newTrackDist" type="number" step="0.01" min="0.1" placeholder="e.g. 5.00" />
+        </div>
+        <div class="grow cap-sm">
+          <label for="newTrackGoal">Default goal (mm:ss) — optional</label>
+          <input id="newTrackGoal" type="text" placeholder="e.g. 25:00" />
+        </div>
+      </div>
+      <div class="cap">
+        <button class="btn btn-primary" id="addTrackBtn">Add track</button>
+        <div id="trackMsg" class="muted" style="display:inline-block; margin-left:8px"></div>
+      </div>
+
+      <div class="card" style="background:#0a1226;">
+        <div class="muted" style="margin-bottom:8px;">Your tracks</div>
+        <div style="overflow:auto">
+          <table>
+            <thead><tr><th>Name</th><th>Distance</th><th>Runs</th><th></th></tr></thead>
+            <tbody id="tracksTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer">Data stays on your device (localStorage). Single file, offline ready.</p>
   </div>
 
 <script>
-/* Viewport height fix for mobile browsers */
-function setVH(){
-  document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
-}
-setVH();
-window.addEventListener('resize', setVH);
-window.addEventListener('orientationchange', setVH);
-
-/* ---------------- Utilities ---------------- */
-const LS_KEYS = { tracks:'runlog.tracks', runs:'runlog.runs', goals:'runlog.goals' };
+/* ===== Utilities ===== */
 const $ = sel => document.querySelector(sel);
-
-function loadJson(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? structuredClone(fallback); } catch { return structuredClone(fallback); } }
-function saveJson(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
-
-function fmtDate(d){ const dt = (d instanceof Date) ? d : new Date(d); return dt.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}); }
-function pad(n){ return n.toString().padStart(2,'0'); }
-function fmtSec(sec){ if(!isFinite(sec)||sec<=0) return '–'; const m=Math.floor(sec/60), s=Math.round(sec%60); return `${m}:${pad(s)}`; }
-function parseTimeToSec(input){ if(!input) return NaN; const s=String(input).trim().toLowerCase(); if(s.includes(':')){ const p=s.split(':').map(Number); if(p.length===2) return p[0]*60+p[1]; if(p.length===3) return p[0]*3600+p[1]*60+p[2]; } if(s.endsWith('s')) return parseFloat(s); const num=parseFloat(s.replace('min','').replace('m','')); return isNaN(num)?NaN:num*60; }
+const LS_KEYS = { tracks:'runlog.tracks', runs:'runlog.runs', goals:'runlog.goals' };
+function loadJson(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? structuredClone(fallback); } catch{ return structuredClone(fallback); } }
+function saveJson(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtSec(sec){ if(!isFinite(sec) || sec<=0) return '–'; const m=Math.floor(sec/60), s=Math.round(sec%60); return `${m}:${pad(s)}`; }
+function parseTimeToSec(s){ if(!s) return NaN; const str=String(s).trim().toLowerCase(); if(str.includes(':')){ const p=str.split(':').map(Number); if(p.length===2) return p[0]*60+p[1]; if(p.length===3) return p[0]*3600+p[1]*60+p[2]; }
+  if(str.endsWith('s')) return parseFloat(str); const num=parseFloat(str.replace('min','').replace('m','')); return isNaN(num)?NaN:num*60; }
+function fmtDate(d){ const dt = (d instanceof Date)? d : new Date(d); return dt.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}); }
 function paceMinPerKm(timeSec, km){ if(!isFinite(timeSec)||!isFinite(km)||km<=0) return '–'; return fmtSec(timeSec/km); }
+function uid(){ return (crypto?.randomUUID?.() ?? (Date.now().toString(36)+Math.random().toString(36).slice(2))); }
 
-/* ---------------- Data ---------------- */
-let state = { tracks: loadJson(LS_KEYS.tracks, []), runs: loadJson(LS_KEYS.runs, []), goals: loadJson(LS_KEYS.goals, {}) };
+/* ===== State ===== */
+let state = {
+  tracks: loadJson(LS_KEYS.tracks, []),
+  runs: loadJson(LS_KEYS.runs, []), // {id, trackId, dateISO, timeSec, note}
+  goals: loadJson(LS_KEYS.goals, {}), // map trackId -> goalSec
+};
 
-// Ensure both tracks exist (without nuking existing data)
-const defaults = [
-  { id:'trattbergrunde', name:'Trattbergrunde', distanceKm:2.1 },
-  { id:'lemprunde', name:'Lemprunde', distanceKm:1.13 },
-];
-if(!state.tracks.length){
-  state.tracks = defaults;
-  saveJson(LS_KEYS.tracks, state.tracks);
-}else{
-  // add any missing default tracks
-  let changed=false;
-  for(const t of defaults){ if(!state.tracks.find(x=>x.id===t.id)){ state.tracks.push(t); changed=true; } }
-  if(changed) saveJson(LS_KEYS.tracks, state.tracks);
-}
+// Ensure default tracks exist without overwriting user's list
+const defaults=[ {id:'trattbergrunde', name:'Trattbergrunde', distanceKm:2.1}, {id:'lemprunde', name:'Lemprunde', distanceKm:1.13} ];
+if(!state.tracks.length){ state.tracks = defaults; saveJson(LS_KEYS.tracks, state.tracks); }
+else{ let changed=false; for(const t of defaults){ if(!state.tracks.find(x=>x.id===t.id)){ state.tracks.push(t); changed=true; } } if(changed) saveJson(LS_KEYS.tracks, state.tracks); }
 
-/* ---------------- Routing ---------------- */
-const views = { home: $('#view-home'), run: $('#view-run'), stats: $('#view-stats') };
-const Router = { go(view){ location.hash=view; }, current(){ return location.hash.replace('#','')||'home'; } };
+/* ===== Router ===== */
+const views = { home:$('#view-home'), run:$('#view-run'), stats:$('#view-stats'), tracks:$('#view-tracks') };
+const Router = { go(v){ location.hash = v; }, current(){ return location.hash.replace('#','') || 'home'; } };
 window.addEventListener('hashchange', render);
 
-/* ---------------- Elements ---------------- */
+// top nav
+$('#navHome').onclick = () => Router.go('home');
+$('#navRun').onclick  = () => Router.go('run');
+$('#navStats').onclick= () => Router.go('stats');
+$('#navTracks').onclick= () => Router.go('tracks');
+
+/* ===== Elements ===== */
 const trackSelect = $('#trackSelect');
 const distanceInput = $('#distance');
 const attemptsInput = $('#attempts');
@@ -276,68 +238,88 @@ const saveMsg = $('#saveMsg');
 const trackStatsSelect = $('#trackStatsSelect');
 const goalInput = $('#goalInput');
 const saveGoalBtn = $('#saveGoalBtn');
-const runsTableBody = $('#runsTable tbody');
+const runsTableBody = $('#runsTable');
 const bestTimeEl = $('#bestTime');
 const avgTimeEl = $('#avgTime');
 const lastTimeEl = $('#lastTime');
 const gapToGoalEl = $('#gapToGoal');
 const chartCanvas = $('#chart');
 
-/* ---------------- Fill & Defaults ---------------- */
-function fillTrackSelects(){ const opts = state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); trackSelect.innerHTML=opts; trackStatsSelect.innerHTML=opts; }
-function setRunTrackDefaults(){ const t = state.tracks.find(t=>t.id===trackSelect.value); if(!t) return; distanceInput.value=t.distanceKm; attemptsInput.value=state.runs.filter(r=>r.trackId===t.id).length; dateAuto.value=fmtDate(new Date()); updatePacePreview(); }
-function updatePacePreview(){ const t=state.tracks.find(t=>t.id===trackSelect.value); const sec=parseTimeToSec(timeInput.value); paceInput.value=isFinite(sec)?paceMinPerKm(sec, t.distanceKm):'–'; }
+const newTrackName = $('#newTrackName');
+const newTrackDist = $('#newTrackDist');
+const newTrackGoal = $('#newTrackGoal');
+const addTrackBtn = $('#addTrackBtn');
+const tracksTableBody = $('#tracksTable');
+const trackMsg = $('#trackMsg');
 
-/* ---------------- Save Run ---------------- */
-saveRunBtn.addEventListener('click', ()=>{
-  const t = state.tracks.find(t=>t.id===trackSelect.value);
+/* ===== Fill selects ===== */
+function fillTrackSelects(){ const opts=state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); trackSelect.innerHTML=opts; trackStatsSelect.innerHTML=opts; }
+
+/* ===== Run page ===== */
+function setRunDefaults(){ const t=state.tracks.find(x=>x.id===trackSelect.value); if(!t) return; distanceInput.value=t.distanceKm; attemptsInput.value=state.runs.filter(r=>r.trackId===t.id).length; dateAuto.value=fmtDate(new Date()); updatePacePreview(); }
+function updatePacePreview(){ const t=state.tracks.find(x=>x.id===trackSelect.value); const sec=parseTimeToSec(timeInput.value); paceInput.value = isFinite(sec)? paceMinPerKm(sec, t.distanceKm):'–'; }
+
+timeInput?.addEventListener('input', updatePacePreview);
+trackSelect?.addEventListener('change', setRunDefaults);
+
+saveRunBtn?.addEventListener('click', () => {
+  const t = state.tracks.find(x=>x.id===trackSelect.value);
   const sec = parseTimeToSec(timeInput.value);
-  if(!isFinite(sec)||sec<=0){ flashMsg('Enter a valid time (e.g. 09:00).', true); return; }
-  const entry = { id: crypto.randomUUID(), trackId: t.id, dateISO: new Date().toISOString(), timeSec: Math.round(sec), note: (noteInput.value||'').trim() };
+  if(!t){ saveMsg.textContent='Select a track'; return; }
+  if(!isFinite(sec) || sec<=0){ saveMsg.textContent='Enter a valid time (e.g. 09:00)'; return; }
+  const entry = { id: uid(), trackId: t.id, dateISO: new Date().toISOString(), timeSec: Math.round(sec), note: (noteInput.value||'').trim() };
   state.runs.push(entry); saveJson(LS_KEYS.runs, state.runs);
-  timeInput.value=''; noteInput.value=''; setRunTrackDefaults(); flashMsg('Saved ✅');
+  timeInput.value=''; noteInput.value=''; setRunDefaults(); saveMsg.textContent='Saved ✓'; setTimeout(()=> saveMsg.textContent='', 2000);
 });
-function flashMsg(text, err=false){ saveMsg.textContent=text; saveMsg.style.color = err ? 'var(--danger)' : 'var(--muted)'; setTimeout(()=> saveMsg.textContent='', 2200); }
 
-/* ---------------- Stats Render ---------------- */
-function renderStats(){ const t = state.tracks.find(t=>t.id===trackStatsSelect.value); if(!t) return; const goalSec = state.goals[t.id] ?? 9*60; goalInput.value = fmtSec(goalSec);
+/* ===== Stats page ===== */
+function renderStats(){ const t=state.tracks.find(x=>x.id===trackStatsSelect.value); if(!t) return; const goalSec = state.goals[t.id] ?? 9*60; goalInput.value = fmtSec(goalSec);
   const rows = state.runs.filter(r=>r.trackId===t.id).sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO));
-  if(!rows.length){ bestTimeEl.textContent='–'; avgTimeEl.textContent='–'; lastTimeEl.textContent='–'; gapToGoalEl.textContent='–'; }
-  else { const times=rows.map(r=>r.timeSec); const best=Math.min(...times); const avg=Math.round(times.reduce((x,y)=>x+y,0)/times.length); bestTimeEl.textContent=fmtSec(best); avgTimeEl.textContent=fmtSec(avg); lastTimeEl.textContent=fmtSec(rows.at(-1).timeSec); const gap=(best-goalSec); gapToGoalEl.textContent=(gap<=0?'✅ ':'+')+fmtSec(Math.abs(gap)); }
-  runsTableBody.innerHTML = rows.map(r=>{ const dt=fmtDate(r.dateISO); const time=fmtSec(r.timeSec); const pace=paceMinPerKm(r.timeSec, t.distanceKm); const delta=r.timeSec-goalSec; const deltaStr=(delta===0)?'0:00':(delta>0? '+'+fmtSec(delta): '−'+fmtSec(Math.abs(delta))); const color = delta>0? 'style="color:var(--danger)"':'style="color:var(--accent)"'; return `<tr><td>${dt}</td><td>${time}</td><td>${pace}</td><td ${color}>${deltaStr}</td><td>${(r.note||'').replace(/</g,'&lt;')}</td></tr>`; }).join('');
+  if(!rows.length){ bestTimeEl.textContent=avgTimeEl.textContent=lastTimeEl.textContent=gapToGoalEl.textContent='–'; runsTableBody.innerHTML=''; drawChart([], goalSec); return; }
+  const times = rows.map(r=>r.timeSec);
+  const best = Math.min(...times);
+  const avg = Math.round(times.reduce((x,y)=>x+y,0)/times.length);
+  bestTimeEl.textContent = fmtSec(best);
+  avgTimeEl.textContent = fmtSec(avg);
+  lastTimeEl.textContent = fmtSec(rows.at(-1).timeSec);
+  const gap = best - goalSec; gapToGoalEl.textContent = (gap<=0? '✅ ':'+') + fmtSec(Math.abs(gap));
+  runsTableBody.innerHTML = rows.map(r=>{ const delta=r.timeSec-goalSec; const deltaStr = delta===0? '0:00': (delta>0? '+'+fmtSec(delta): '−'+fmtSec(-delta)); const color = delta>0? 'style="color:var(--danger)"':'style="color:var(--accent)"'; return `<tr><td>${fmtDate(r.dateISO)}</td><td>${fmtSec(r.timeSec)}</td><td>${paceMinPerKm(r.timeSec,t.distanceKm)}</td><td ${color}>${deltaStr}</td><td>${(r.note||'').replace(/</g,'&lt;')}</td></tr>`; }).join('');
   drawChart(rows, goalSec);
 }
 
-saveGoalBtn.addEventListener('click', ()=>{ const trackId=trackStatsSelect.value; const sec=parseTimeToSec(goalInput.value); if(!isFinite(sec)||sec<=0){ goalInput.focus(); goalInput.select(); return alert('Enter a valid goal (e.g. 09:00).'); } state.goals[trackId]=Math.round(sec); saveJson(LS_KEYS.goals, state.goals); renderStats(); });
+saveGoalBtn?.addEventListener('click', () => { const trackId=trackStatsSelect.value; const sec=parseTimeToSec(goalInput.value); if(!isFinite(sec)||sec<=0){ goalInput.focus(); goalInput.select(); return alert('Enter a valid goal, e.g. 09:00'); } state.goals[trackId]=Math.round(sec); saveJson(LS_KEYS.goals, state.goals); renderStats(); });
 
-/* ---------------- Chart ---------------- */
-function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const DPR= devicePixelRatio||1; const w = chartCanvas.clientWidth*DPR; const h = chartCanvas.clientHeight*DPR; if(chartCanvas.width!==w) chartCanvas.width=w; if(chartCanvas.height!==h) chartCanvas.height=h; ctx.clearRect(0,0,w,h);
-  const padL=48, padR=12, padT=12, padB=36; const plotW=w-padL-padR, plotH=h-padT-padB; const times=rows.map(r=>r.timeSec); const minT=rows.length?Math.min(...times, goalSec):8*60; const maxT=rows.length?Math.max(...times, goalSec):14*60; const yMin=Math.max(0, Math.floor((minT-30)/30)*30); const yMax=Math.ceil((maxT+30)/30)*30;
-  const x = i => padL + (rows.length<=1? plotW/2 : i*(plotW/(rows.length-1))); const y = s => padT + (1 - (s - yMin)/(yMax-yMin)) * plotH;
-  ctx.strokeStyle='rgba(255,255,255,0.14)'; ctx.lineWidth=1*DPR; ctx.beginPath(); for(let s=yMin; s<=yMax; s+=30){ const yy=y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy);} ctx.stroke();
-  ctx.fillStyle='rgba(229,231,235,0.9)'; ctx.font=`${11*DPR}px system-ui, sans-serif`; ctx.textAlign='right'; ctx.textBaseline='middle'; for(let s=yMin; s<=yMax; s+=60){ ctx.fillText(fmtSec(s), padL-6, y(s)); }
-  ctx.textAlign='center'; ctx.textBaseline='top'; const step=Math.max(1, Math.floor(rows.length/6)); rows.forEach((r,i)=>{ if(i%step===0||i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), x(i), h-padB+6); }});
-  ctx.strokeStyle='rgba(56,189,248,0.95)'; ctx.setLineDash([6*DPR,6*DPR]); ctx.beginPath(); ctx.moveTo(padL,y(goalSec)); ctx.lineTo(w-padR,y(goalSec)); ctx.stroke(); ctx.setLineDash([]);
-  rows.forEach((r,i)=>{ const xi=x(i), yi=y(r.timeSec), yg=y(goalSec); ctx.strokeStyle = r.timeSec<=goalSec? 'rgba(34,197,94,0.65)':'rgba(239,68,68,0.65)'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.moveTo(xi,yi); ctx.lineTo(xi,yg); ctx.stroke(); });
-  if(rows.length){ ctx.strokeStyle='rgba(34,197,94,0.95)'; ctx.lineWidth=2*DPR; ctx.beginPath(); rows.forEach((r,i)=>{ const xi=x(i), yi=y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);}); ctx.stroke(); }
-  rows.forEach((r,i)=>{ const xi=x(i), yi=y(r.timeSec); const good=r.timeSec<=goalSec; ctx.fillStyle=good? 'rgba(34,197,94,1)':'rgba(239,68,68,1)'; ctx.beginPath(); ctx.arc(xi,yi,3.8*DPR,0,Math.PI*2); ctx.fill(); });
+function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const DPR = devicePixelRatio || 1; const w = chartCanvas.clientWidth*DPR; const h = chartCanvas.clientHeight*DPR; if(chartCanvas.width!==w) chartCanvas.width=w; if(chartCanvas.height!==h) chartCanvas.height=h; ctx.clearRect(0,0,w,h);
+  const padL=48, padR=12, padT=12, padB=36; const plotW=w-padL-padR, plotH=h-padT-padB;
+  const times=rows.map(r=>r.timeSec); const minT=rows.length?Math.min(...times, goalSec):8*60; const maxT=rows.length?Math.max(...times, goalSec):14*60; const yMin=Math.max(0, Math.floor((minT-30)/30)*30); const yMax=Math.ceil((maxT+30)/30)*30;
+  const X=i=> padL + (rows.length<=1? plotW/2 : i*(plotW/(rows.length-1))); const Y=s=> padT + (1 - (s-yMin)/(yMax-yMin)) * plotH;
+  ctx.strokeStyle='rgba(255,255,255,.14)'; ctx.lineWidth=1*DPR; ctx.beginPath(); for(let s=yMin; s<=yMax; s+=30){ const yy=Y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy);} ctx.stroke();
+  ctx.fillStyle='rgba(229,231,235,.9)'; ctx.font=`${11*DPR}px system-ui,sans-serif`; ctx.textAlign='right'; ctx.textBaseline='middle'; for(let s=yMin; s<=yMax; s+=60){ ctx.fillText(fmtSec(s), padL-6, Y(s)); }
+  // x labels
+  ctx.textAlign='center'; ctx.textBaseline='top'; const step=Math.max(1, Math.floor(rows.length/6)); rows.forEach((r,i)=>{ if(i%step===0||i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), X(i), h-padB+6); }});
+  // goal line
+  ctx.strokeStyle='rgba(56,189,248,.95)'; ctx.setLineDash([6*DPR,6*DPR]); ctx.beginPath(); ctx.moveTo(padL,Y(goalSec)); ctx.lineTo(w-padR,Y(goalSec)); ctx.stroke(); ctx.setLineDash([]);
+  // delta bars
+  rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec), yg=Y(goalSec); ctx.strokeStyle = r.timeSec<=goalSec? 'rgba(34,197,94,.65)':'rgba(239,68,68,.65)'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.moveTo(xi,yi); ctx.lineTo(xi,yg); ctx.stroke(); });
+  // path
+  if(rows.length){ ctx.strokeStyle='rgba(34,197,94,.95)'; ctx.lineWidth=2*DPR; ctx.beginPath(); rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi); }); ctx.stroke(); }
+  // points
+  rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); ctx.fillStyle = r.timeSec<=goalSec? 'rgba(34,197,94,1)':'rgba(239,68,68,1)'; ctx.beginPath(); ctx.arc(xi,yi,3.8*DPR,0,Math.PI*2); ctx.fill(); });
 }
 
-/* ---------------- Render Root ---------------- */
-function render(){ const cur=Router.current(); Object.entries(views).forEach(([k,el])=> el.classList.toggle('hidden', k!==cur)); if(cur==='run'){ fillTrackSelects(); setRunTrackDefaults(); } else if(cur==='stats'){ fillTrackSelects(); renderStats(); } }
+/* ===== Tracks page ===== */
+function renderTracksTable(){ tracksTableBody.innerHTML = state.tracks.map(t=>{ const count = state.runs.filter(r=>r.trackId===t.id).length; return `<tr><td>${t.name}</td><td>${t.distanceKm} km</td><td>${count}</td><td><button class=\"btn\" data-del=\"${t.id}\">Delete</button></td></tr>`; }).join('');
+  // bind delete buttons
+  tracksTableBody.querySelectorAll('button[data-del]').forEach(btn=>{ btn.onclick = () => { const id=btn.getAttribute('data-del'); const t=state.tracks.find(x=>x.id===id); const count = state.runs.filter(r=>r.trackId===id).length; const ok = confirm(`Delete track "${t.name}"? This will also remove ${count} run(s) for this track.`); if(!ok) return; state.tracks = state.tracks.filter(x=>x.id!==id); state.runs = state.runs.filter(r=>r.trackId!==id); delete state.goals[id]; saveJson(LS_KEYS.tracks, state.tracks); saveJson(LS_KEYS.runs, state.runs); saveJson(LS_KEYS.goals, state.goals); fillTrackSelects(); if(Router.current()==='run') setRunDefaults(); if(Router.current()==='stats') renderStats(); renderTracksTable(); }; });
+}
 
-document.getElementById('homeBtn').onclick=()=>Router.go('home');
-document.getElementById('runBtn').onclick =()=>Router.go('run');
-document.getElementById('statsBtn').onclick=()=>Router.go('stats');
+addTrackBtn?.addEventListener('click', () => { const name=(newTrackName.value||'').trim(); const dist=parseFloat(newTrackDist.value); const goal=parseTimeToSec(newTrackGoal.value); if(!name){ trackMsg.textContent='Enter a name'; return; } if(!isFinite(dist) || dist<=0){ trackMsg.textContent='Enter a valid distance'; return; } const id = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || uid(); if(state.tracks.find(x=>x.id===id || x.name.toLowerCase()===name.toLowerCase())){ trackMsg.textContent='Track already exists'; return; } const t={ id, name, distanceKm: Math.round(dist*100)/100 }; state.tracks.push(t); if(isFinite(goal) && goal>0) state.goals[id]=Math.round(goal); saveJson(LS_KEYS.tracks, state.tracks); saveJson(LS_KEYS.goals, state.goals); newTrackName.value=''; newTrackDist.value=''; newTrackGoal.value=''; trackMsg.textContent='Added ✓'; setTimeout(()=>trackMsg.textContent='',1500); fillTrackSelects(); renderTracksTable(); });
 
-trackSelect?.addEventListener('change', setRunTrackDefaults);
-trackStatsSelect?.addEventListener('change', renderStats);
+/* ===== Render root ===== */
+function render(){ const cur=Router.current(); Object.entries(views).forEach(([k,el])=> el.classList.toggle('hidden', k!==cur)); if(cur==='run'){ fillTrackSelects(); if(!trackSelect.value && state.tracks[0]) trackSelect.value=state.tracks[0].id; setRunDefaults(); } else if(cur==='stats'){ fillTrackSelects(); if(!trackStatsSelect.value && state.tracks[0]) trackStatsSelect.value=state.tracks[0].id; renderStats(); } else if(cur==='tracks'){ renderTracksTable(); } }
 
-timeInput?.addEventListener('input', updatePacePreview);
-
-// boot
+// initial
 render();
-window.addEventListener('resize', ()=>{ if(Router.current()==='stats') renderStats(); });
 </script>
 </body>
 </html>
