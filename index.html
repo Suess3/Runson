@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Run Tracker (Minimal)</title>
+  <title>Run Tracker (Minimal + Firebase Sync)</title>
   <style>
     /* ===== Minimal, oldschool-ish look ===== */
     :root{
       --bg:#ffffff; --ink:#111; --muted:#555; --line:#cfcfcf; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
-      --wrap:max(320px, min(720px, 92vw));
+      --wrap:max(320px, min(760px, 94vw));
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0; font:15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--ink); background:var(--bg)}
+    body{margin:0; font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--ink); background:var(--bg)}
     a{color:var(--accent); text-decoration:none}
 
     .wrap{max-width:var(--wrap); margin:0 auto; padding:12px}
@@ -55,6 +55,8 @@
     .kpi .label{color:var(--muted); font-size:12px}
     .kpi .value{font-weight:800; font-size:18px}
 
+    .tip{background:#fff8e1; border:1px solid #ecd792; color:#5b4b00; padding:8px 10px; border-radius:6px; font-size:13px}
+
     @media (min-width: 820px){ body{font-size:16px} }
   </style>
 </head>
@@ -69,13 +71,26 @@
       </nav>
     </header>
 
-    <!-- HOME: Simple menu -->
+    <!-- HOME: Simple menu + Cloud sync setup -->
     <section id="view-home" class="panel">
       <div class="row">
         <button class="btn primary" onclick="Router.go('run')">➕ Start a run</button>
         <button class="btn" onclick="Router.go('stats')">📊 View stats</button>
       </div>
-      <p class="muted" style="margin-top:10px">Data is stored locally on this device (localStorage).</p>
+      <p class="muted" style="margin:10px 0 8px">Data is stored locally by default. Enable cloud sync to access from all devices.</p>
+
+      <details open>
+        <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync (Firebase Firestore)</summary>
+        <div style="margin-top:8px" class="tip">
+          <strong>Quick setup:</strong> This file already includes your Firebase config. Just choose a <em>Sync code</em> (any short word you’ll reuse on every device) and press <em>Connect & Sync</em>.
+        </div>
+        <label for="syncCode">Sync code</label>
+        <input id="syncCode" placeholder="e.g. my-trattberg-data" />
+        <div class="row" style="margin-top:6px">
+          <button class="btn primary" id="connectCloudBtn">Connect & Sync</button>
+          <div id="cloudMsg" class="muted" style="padding-left:6px"></div>
+        </div>
+      </details>
     </section>
 
     <!-- RUN -->
@@ -160,40 +175,65 @@
     </section>
   </div>
 
-<script>
-/* ===== Utilities ===== */
-const LS_KEYS = { tracks:'runlog.tracks', runs:'runlog.runs', goals:'runlog.goals' };
+<script type="module">
+/***********************
+ * Firebase (v12 modules)
+ ***********************/
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+// Your Firebase config (from your message)
+const firebaseConfig = {
+  apiKey: "AIzaSyAHd5uyDJF7bKNjfJIRPGQuh7k2W6tDcE8",
+  authDomain: "runson-83a3b.firebaseapp.com",
+  projectId: "runson-83a3b",
+  storageBucket: "runson-83a3b.firebasestorage.app",
+  messagingSenderId: "659521632447",
+  appId: "1:659521632447:web:ba3960e5c5b5494e77ae0a",
+  measurementId: "G-08E9MT3JC3"
+};
+
+let app, analytics, auth, db;
+try{ app = initializeApp(firebaseConfig); }catch(e){ console.warn('Firebase init error', e); }
+try{ analytics = getAnalytics(app); }catch(e){ /* analytics optional in some contexts */ }
+auth = getAuth(app);
+db = getFirestore(app);
+
+/***********************
+ * App state + utilities
+ ***********************/
+const LS_KEYS = { tracks:'runlog.tracks', runs:'runlog.runs', goals:'runlog.goals', sync:'runlog.sync' };
 const $ = sel => document.querySelector(sel);
+const Router = { go(v){ location.hash=v; }, current(){ return location.hash.replace('#','')||'home'; } };
+window.addEventListener('hashchange', render);
+
 function loadJson(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)) ?? structuredClone(fallback); } catch{ return structuredClone(fallback); } }
 function saveJson(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
 function pad(n){ return String(n).padStart(2,'0'); }
 function fmtSec(sec){ if(!isFinite(sec)||sec<=0) return '–'; const m=Math.floor(sec/60), s=Math.round(sec%60); return `${m}:${pad(s)}`; }
-function parseTimeToSec(input){ if(!input) return NaN; const s=String(input).trim().toLowerCase(); if(s.includes(':')){ const p=s.split(':').map(Number); if(p.length===2) return p[0]*60+p[1]; if(p.length===3) return p[0]*3600+p[1]*60+p[2]; }
-  if(s.endsWith('s')) return parseFloat(s); const num=parseFloat(s.replace('min','').replace('m','')); return isNaN(num)?NaN:num*60; }
+function parseTimeToSec(input){ if(!input) return NaN; const s=String(input).trim().toLowerCase(); if(s.includes(':')){ const p=s.split(':').map(Number); if(p.length===2) return p[0]*60+p[1]; if(p.length===3) return p[0]*3600+p[1]*60+p[2]; } if(s.endsWith('s')) return parseFloat(s); const num=parseFloat(s.replace('min','').replace('m','')); return isNaN(num)?NaN:num*60; }
 function fmtDate(d){ const dt=(d instanceof Date)? d : new Date(d); return dt.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}); }
 function paceMinPerKm(timeSec, km){ if(!isFinite(timeSec)||!isFinite(km)||km<=0) return '–'; return fmtSec(timeSec/km); }
 
-/* ===== State ===== */
 let state = {
   tracks: loadJson(LS_KEYS.tracks, []),
   runs:   loadJson(LS_KEYS.runs,   []), // {id, trackId, dateISO, timeSec, note}
   goals:  loadJson(LS_KEYS.goals,  {}), // map trackId -> goalSec
 };
 
-// Ensure the two default tracks exist
+// Ensure default tracks exist
 const defaults=[ {id:'trattbergrunde', name:'Trattbergrunde', distanceKm:2.1}, {id:'lemprunde', name:'Lemprunde', distanceKm:1.13} ];
 if(!state.tracks.length){ state.tracks = defaults; saveJson(LS_KEYS.tracks, state.tracks); }
 else { let changed=false; for(const t of defaults){ if(!state.tracks.find(x=>x.id===t.id)){ state.tracks.push(t); changed=true; } } if(changed) saveJson(LS_KEYS.tracks, state.tracks); }
 
-/* ===== Router ===== */
+// Views & elements
 const views = { home: $('#view-home'), run: $('#view-run'), stats: $('#view-stats') };
-const Router = { go(v){ location.hash=v; }, current(){ return location.hash.replace('#','')||'home'; } };
-window.addEventListener('hashchange', render);
 $('#navHome').onclick = () => Router.go('home');
 $('#navRun').onclick  = () => Router.go('run');
 $('#navStats').onclick= () => Router.go('stats');
 
-/* ===== Elements ===== */
 const trackSelect = $('#trackSelect');
 const distanceInput = $('#distance');
 const attemptsInput = $('#attempts');
@@ -214,7 +254,11 @@ const lastTimeEl = $('#lastTime');
 const gapToGoalEl = $('#gapToGoal');
 const chartCanvas = $('#chart');
 
-/* ===== Helper fills ===== */
+const syncCodeInput = $('#syncCode');
+const connectCloudBtn = $('#connectCloudBtn');
+const cloudMsg = $('#cloudMsg');
+
+// Fill selects
 function fillTrackSelects(){ const opts=state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); trackSelect.innerHTML=opts; trackStatsSelect.innerHTML=opts; }
 function setRunDefaults(){ const t=state.tracks.find(x=>x.id===trackSelect.value); if(!t) return; distanceInput.value=t.distanceKm; attemptsInput.value=state.runs.filter(r=>r.trackId===t.id).length; dateAuto.value=fmtDate(new Date()); updatePacePreview(); }
 function updatePacePreview(){ const t=state.tracks.find(x=>x.id===trackSelect.value); const sec=parseTimeToSec(timeInput.value); paceInput.value=isFinite(sec)? paceMinPerKm(sec, t.distanceKm):'–'; }
@@ -222,18 +266,63 @@ function updatePacePreview(){ const t=state.tracks.find(x=>x.id===trackSelect.va
 timeInput.addEventListener('input', updatePacePreview);
 trackSelect.addEventListener('change', setRunDefaults);
 
-/* ===== Save run ===== */
-saveRunBtn.addEventListener('click', ()=>{
+/***********************
+ * Firebase sync helpers
+ ***********************/
+let fb = { connected:false, code: (loadJson(LS_KEYS.sync,{code:''}).code||'').trim(), unsub:null, docRef:null };
+if(fb.code) syncCodeInput.value = fb.code;
+
+async function connectCloud(){
+  fb.code = (syncCodeInput.value||'').trim();
+  if(!fb.code){ cloudMsg.textContent = 'Enter a sync code.'; return; }
+  saveJson(LS_KEYS.sync, { code: fb.code });
+  try{
+    await signInAnonymously(auth);
+    fb.docRef = doc(db, 'runtracker', fb.code);
+    // Live listener
+    if(fb.unsub) fb.unsub();
+    fb.unsub = onSnapshot(fb.docRef, snap => {
+      if(!snap.exists()){
+        // seed cloud with local
+        setDoc(fb.docRef, { tracks: state.tracks, runs: state.runs, goals: state.goals, updatedAt: serverTimestamp() });
+        cloudMsg.textContent = 'Created cloud doc. Synced.'; setTimeout(()=>cloudMsg.textContent='', 1800);
+      }else{
+        const cloud = snap.data();
+        if(cloud && cloud.tracks && cloud.runs && cloud.goals){
+          state.tracks = cloud.tracks; state.runs = cloud.runs; state.goals = cloud.goals;
+          saveJson(LS_KEYS.tracks, state.tracks);
+          saveJson(LS_KEYS.runs, state.runs);
+          saveJson(LS_KEYS.goals, state.goals);
+          render();
+          cloudMsg.textContent = 'Synced from cloud.'; setTimeout(()=>cloudMsg.textContent='', 1200);
+        }
+      }
+    });
+    fb.connected = true;
+    cloudMsg.textContent = 'Connected. Live sync enabled.';
+  }catch(e){ cloudMsg.textContent = 'Cloud error: '+(e?.message||e); }
+}
+
+async function pushToCloud(){ if(!fb.connected || !fb.docRef) return; try{ await setDoc(fb.docRef, { tracks: state.tracks, runs: state.runs, goals: state.goals, updatedAt: serverTimestamp() }, { merge:true }); } catch(e){ console.warn('pushToCloud', e); } }
+
+connectCloudBtn.addEventListener('click', connectCloud);
+
+/***********************
+ * Save + Stats + Chart
+ ***********************/
+saveRunBtn.addEventListener('click', async ()=>{
   const t=state.tracks.find(x=>x.id===trackSelect.value);
   const sec=parseTimeToSec(timeInput.value);
   if(!t){ saveMsg.textContent='Select a track'; return; }
   if(!isFinite(sec)||sec<=0){ saveMsg.textContent='Enter a valid time (e.g. 09:00)'; return; }
-  const entry={ id: (crypto.randomUUID?.()||Date.now()+''), trackId:t.id, dateISO:new Date().toISOString(), timeSec:Math.round(sec), note:(noteInput.value||'').trim() };
+  const entry={ id:(crypto.randomUUID?.()||Date.now()+''), trackId:t.id, dateISO:new Date().toISOString(), timeSec:Math.round(sec), note:(noteInput.value||'').trim() };
   state.runs.push(entry); saveJson(LS_KEYS.runs, state.runs);
+  await pushToCloud();
   timeInput.value=''; noteInput.value=''; setRunDefaults(); saveMsg.textContent='Saved ✓'; setTimeout(()=> saveMsg.textContent='', 1800);
 });
 
-/* ===== Stats render ===== */
+saveGoalBtn.addEventListener('click', async ()=>{ const id=trackStatsSelect.value; const sec=parseTimeToSec(goalInput.value); if(!isFinite(sec)||sec<=0){ goalInput.focus(); goalInput.select(); return; } state.goals[id]=Math.round(sec); saveJson(LS_KEYS.goals, state.goals); await pushToCloud(); renderStats(); });
+
 function renderStats(){ const t=state.tracks.find(x=>x.id===trackStatsSelect.value); if(!t) return; const goal = state.goals[t.id] ?? 9*60; goalInput.value = fmtSec(goal);
   const rows = state.runs.filter(r=>r.trackId===t.id).sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO));
   if(!rows.length){ bestTimeEl.textContent=avgTimeEl.textContent=lastTimeEl.textContent=gapToGoalEl.textContent='–'; runsTableBody.innerHTML=''; drawChart([], goal); return; }
@@ -245,9 +334,6 @@ function renderStats(){ const t=state.tracks.find(x=>x.id===trackStatsSelect.val
   drawChart(rows, goal);
 }
 
-saveGoalBtn.addEventListener('click', ()=>{ const id=trackStatsSelect.value; const sec=parseTimeToSec(goalInput.value); if(!isFinite(sec)||sec<=0){ goalInput.focus(); goalInput.select(); return; } state.goals[id]=Math.round(sec); saveJson(LS_KEYS.goals, state.goals); renderStats(); });
-
-/* ===== Chart (very simple) ===== */
 function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const DPR=devicePixelRatio||1; const w=chartCanvas.clientWidth*DPR; const h=chartCanvas.clientHeight*DPR; if(chartCanvas.width!==w) chartCanvas.width=w; if(chartCanvas.height!==h) chartCanvas.height=h; ctx.clearRect(0,0,w,h);
   const padL=46, padR=10, padT=10, padB=28; const pw=w-padL-padR, ph=h-padT-padB;
   const times=rows.map(r=>r.timeSec); const minT=rows.length?Math.min(...times, goalSec):8*60; const maxT=rows.length?Math.max(...times, goalSec):14*60; const y0=Math.max(0, Math.floor((minT-30)/30)*30), y1=Math.ceil((maxT+30)/30)*30;
@@ -266,11 +352,13 @@ function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const
   rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); ctx.fillStyle = r.timeSec<=goalSec? '#147a0a' : '#b00020'; ctx.beginPath(); ctx.arc(xi,yi,3.5*DPR,0,Math.PI*2); ctx.fill(); });
 }
 
-/* ===== Root render ===== */
-function render(){ const cur=Router.current(); Object.entries(views).forEach(([k,el])=> el.classList.toggle('hidden', k!==cur)); if(cur==='run'){ fillTrackSelects(); if(!trackSelect.value && state.tracks[0]) trackSelect.value=state.tracks[0].id; setRunDefaults(); } else if(cur==='stats'){ fillTrackSelects(); if(!trackStatsSelect.value && state.tracks[0]) trackStatsSelect.value=state.tracks[0].id; renderStats(); } }
+function fillSelectIfEmpty(sel, arr){ if(!sel.value && arr[0]) sel.value = arr[0].id; }
+function render(){ const cur=Router.current(); Object.entries(views).forEach(([k,el])=> el.classList.toggle('hidden', k!==cur)); if(cur==='run'){ fillTrackSelects(); fillSelectIfEmpty(trackSelect, state.tracks); setRunDefaults(); } else if(cur==='stats'){ fillTrackSelects(); fillSelectIfEmpty(trackStatsSelect, state.tracks); renderStats(); } }
 
-// boot
+// Boot
 render();
+// Auto-connect if we already have a sync code
+if(fb.code){ connectCloud(); }
 window.addEventListener('resize', ()=>{ if(Router.current()==='stats') renderStats(); });
 </script>
 </body>
