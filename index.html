@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Run Tracker (Minimal + Firebase Sync)</title>
+  <title>Run Tracker (Minimal + Firebase)</title>
   <style>
-    /* ===== Minimal, oldschool-ish look ===== */
+    /* ===== Minimal oldschool look with requested background ===== */
     :root{
-      --bg:#ffffff; --ink:#111; --muted:#555; --line:#cfcfcf; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
+      --bg:#b5e6f5; /* requested */
+      --ink:#111; --muted:#555; --line:#cfcfcf; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
       --wrap:max(320px, min(760px, 94vw));
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{margin:0; font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--ink); background:var(--bg)}
-    a{color:var(--accent); text-decoration:none}
 
     .wrap{max-width:var(--wrap); margin:0 auto; padding:12px}
     header{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0 10px; border-bottom:1px solid var(--line); margin-bottom:12px}
@@ -31,31 +31,28 @@
 
     .row{display:flex; gap:8px; align-items:flex-end}
     .grow{flex:1 1 160px}
-
     .muted{color:var(--muted)}
     .hidden{display:none !important}
 
     /* Table with readable numeric columns on mobile */
-    .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:6px}
+    .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:6px; background:#fff}
     table{width:100%; border-collapse:collapse; table-layout:auto; background:#fff}
     th, td{border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top}
     th{background:#fafafa}
     .num{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; white-space:nowrap}
     .col-date{min-width: 9ch}
-    .col-time{min-width: 6.5ch}
-    .col-pace{min-width: 7.5ch}
-    .col-delta{min-width: 7.5ch}
+    .col-time{min-width: 7ch}
+    .col-pace{min-width: 8ch}
+    .col-delta{min-width: 8ch}
     .col-note{min-width: 18ch}
 
-    /* Chart */
-    #chart{width:100%; height:240px; border:1px solid var(--line); border-radius:6px; background:#fff}
+    /* Chart: bigger padding so labels aren't clipped */
+    #chart{width:100%; height:260px; border:1px solid var(--line); border-radius:6px; background:#fff}
 
     .kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px}
-    .kpi{border:1px solid var(--line); border-radius:6px; padding:10px}
+    .kpi{border:1px solid var(--line); border-radius:6px; padding:10px; background:#fff}
     .kpi .label{color:var(--muted); font-size:12px}
     .kpi .value{font-weight:800; font-size:18px}
-
-    .tip{background:#fff8e1; border:1px solid #ecd792; color:#5b4b00; padding:8px 10px; border-radius:6px; font-size:13px}
 
     @media (min-width: 820px){ body{font-size:16px} }
   </style>
@@ -71,21 +68,14 @@
       </nav>
     </header>
 
-    <!-- HOME: Simple menu + Cloud sync setup -->
+    <!-- HOME (no Start/View buttons; just sync setup + hint) -->
     <section id="view-home" class="panel">
-      <div class="row">
-        <button class="btn primary" onclick="Router.go('run')">➕ Start a run</button>
-        <button class="btn" onclick="Router.go('stats')">📊 View stats</button>
-      </div>
-      <p class="muted" style="margin:10px 0 8px">Data is stored locally by default. Enable cloud sync to access from all devices.</p>
-
+      <p class="muted" style="margin:0 0 8px">Data is stored locally by default. Enable cloud sync to access from all devices.</p>
       <details open>
         <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync (Firebase Firestore)</summary>
-        <div style="margin-top:8px" class="tip">
-          <strong>Quick setup:</strong> This file already includes your Firebase config. Just choose a <em>Sync code</em> (any short word you’ll reuse on every device) and press <em>Connect & Sync</em>.
-        </div>
+        <p class="muted" style="margin:8px 0">Hint: you can use the sync code <strong>“Run”</strong> to get started quickly. Use the same code on all devices.</p>
         <label for="syncCode">Sync code</label>
-        <input id="syncCode" placeholder="e.g. my-trattberg-data" />
+        <input id="syncCode" placeholder="e.g. Run" />
         <div class="row" style="margin-top:6px">
           <button class="btn primary" id="connectCloudBtn">Connect & Sync</button>
           <div id="cloudMsg" class="muted" style="padding-left:6px"></div>
@@ -119,9 +109,9 @@
           <label for="pace">Pace (min/km)</label>
           <input id="pace" disabled>
         </div>
-        <div style="width:160px">
-          <label for="dateAuto">Date</label>
-          <input id="dateAuto" disabled>
+        <div style="width:170px">
+          <label for="dateInput">Date</label>
+          <input id="dateInput" type="date">
         </div>
       </div>
       <label for="noteInput">Note</label>
@@ -177,14 +167,13 @@
 
 <script type="module">
 /***********************
- * Firebase (v12 modules)
+ * Firebase (v12 modules) — uses your existing project
  ***********************/
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-analytics.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-// Your Firebase config (from your message)
+// Your Firebase config (from earlier)
 const firebaseConfig = {
   apiKey: "AIzaSyAHd5uyDJF7bKNjfJIRPGQuh7k2W6tDcE8",
   authDomain: "runson-83a3b.firebaseapp.com",
@@ -194,12 +183,9 @@ const firebaseConfig = {
   appId: "1:659521632447:web:ba3960e5c5b5494e77ae0a",
   measurementId: "G-08E9MT3JC3"
 };
-
-let app, analytics, auth, db;
-try{ app = initializeApp(firebaseConfig); }catch(e){ console.warn('Firebase init error', e); }
-try{ analytics = getAnalytics(app); }catch(e){ /* analytics optional in some contexts */ }
-auth = getAuth(app);
-db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
 /***********************
  * App state + utilities
@@ -215,6 +201,7 @@ function pad(n){ return String(n).padStart(2,'0'); }
 function fmtSec(sec){ if(!isFinite(sec)||sec<=0) return '–'; const m=Math.floor(sec/60), s=Math.round(sec%60); return `${m}:${pad(s)}`; }
 function parseTimeToSec(input){ if(!input) return NaN; const s=String(input).trim().toLowerCase(); if(s.includes(':')){ const p=s.split(':').map(Number); if(p.length===2) return p[0]*60+p[1]; if(p.length===3) return p[0]*3600+p[1]*60+p[2]; } if(s.endsWith('s')) return parseFloat(s); const num=parseFloat(s.replace('min','').replace('m','')); return isNaN(num)?NaN:num*60; }
 function fmtDate(d){ const dt=(d instanceof Date)? d : new Date(d); return dt.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}); }
+function ymd(d){ const dt=(d instanceof Date)? d : new Date(d); return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
 function paceMinPerKm(timeSec, km){ if(!isFinite(timeSec)||!isFinite(km)||km<=0) return '–'; return fmtSec(timeSec/km); }
 
 let state = {
@@ -239,7 +226,7 @@ const distanceInput = $('#distance');
 const attemptsInput = $('#attempts');
 const timeInput = $('#timeInput');
 const paceInput = $('#pace');
-const dateAuto = $('#dateAuto');
+const dateInput = $('#dateInput');
 const noteInput = $('#noteInput');
 const saveRunBtn = $('#saveRunBtn');
 const saveMsg = $('#saveMsg');
@@ -254,26 +241,26 @@ const lastTimeEl = $('#lastTime');
 const gapToGoalEl = $('#gapToGoal');
 const chartCanvas = $('#chart');
 
-const syncCodeInput = $('#syncCode');
-const connectCloudBtn = $('#connectCloudBtn');
-const cloudMsg = $('#cloudMsg');
-
 // Fill selects
 function fillTrackSelects(){ const opts=state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); trackSelect.innerHTML=opts; trackStatsSelect.innerHTML=opts; }
-function setRunDefaults(){ const t=state.tracks.find(x=>x.id===trackSelect.value); if(!t) return; distanceInput.value=t.distanceKm; attemptsInput.value=state.runs.filter(r=>r.trackId===t.id).length; dateAuto.value=fmtDate(new Date()); updatePacePreview(); }
+function setRunDefaults(){ const t=state.tracks.find(x=>x.id===trackSelect.value); if(!t) return; distanceInput.value=t.distanceKm; attemptsInput.value=state.runs.filter(r=>r.trackId===t.id).length; dateInput.value = ymd(new Date()); updatePacePreview(); }
 function updatePacePreview(){ const t=state.tracks.find(x=>x.id===trackSelect.value); const sec=parseTimeToSec(timeInput.value); paceInput.value=isFinite(sec)? paceMinPerKm(sec, t.distanceKm):'–'; }
 
 timeInput.addEventListener('input', updatePacePreview);
 trackSelect.addEventListener('change', setRunDefaults);
 
 /***********************
- * Firebase sync helpers
+ * Firebase sync helpers (Sync code defaults to "Run")
  ***********************/
 let fb = { connected:false, code: (loadJson(LS_KEYS.sync,{code:''}).code||'').trim(), unsub:null, docRef:null };
-if(fb.code) syncCodeInput.value = fb.code;
+const syncCodeInput = $('#syncCode');
+const connectCloudBtn = $('#connectCloudBtn');
+const cloudMsg = $('#cloudMsg');
+if(!fb.code) fb.code = 'Run'; // hint as default
+if(syncCodeInput) syncCodeInput.value = fb.code;
 
 async function connectCloud(){
-  fb.code = (syncCodeInput.value||'').trim();
+  fb.code = (syncCodeInput?.value||'').trim();
   if(!fb.code){ cloudMsg.textContent = 'Enter a sync code.'; return; }
   saveJson(LS_KEYS.sync, { code: fb.code });
   try{
@@ -304,8 +291,7 @@ async function connectCloud(){
 }
 
 async function pushToCloud(){ if(!fb.connected || !fb.docRef) return; try{ await setDoc(fb.docRef, { tracks: state.tracks, runs: state.runs, goals: state.goals, updatedAt: serverTimestamp() }, { merge:true }); } catch(e){ console.warn('pushToCloud', e); } }
-
-connectCloudBtn.addEventListener('click', connectCloud);
+connectCloudBtn?.addEventListener('click', connectCloud);
 
 /***********************
  * Save + Stats + Chart
@@ -315,7 +301,8 @@ saveRunBtn.addEventListener('click', async ()=>{
   const sec=parseTimeToSec(timeInput.value);
   if(!t){ saveMsg.textContent='Select a track'; return; }
   if(!isFinite(sec)||sec<=0){ saveMsg.textContent='Enter a valid time (e.g. 09:00)'; return; }
-  const entry={ id:(crypto.randomUUID?.()||Date.now()+''), trackId:t.id, dateISO:new Date().toISOString(), timeSec:Math.round(sec), note:(noteInput.value||'').trim() };
+  const when = dateInput.value ? new Date(dateInput.value+'T12:00:00') : new Date();
+  const entry={ id:(crypto.randomUUID?.()||Date.now()+''), trackId:t.id, dateISO:when.toISOString(), timeSec:Math.round(sec), note:(noteInput.value||'').trim() };
   state.runs.push(entry); saveJson(LS_KEYS.runs, state.runs);
   await pushToCloud();
   timeInput.value=''; noteInput.value=''; setRunDefaults(); saveMsg.textContent='Saved ✓'; setTimeout(()=> saveMsg.textContent='', 1800);
@@ -334,21 +321,40 @@ function renderStats(){ const t=state.tracks.find(x=>x.id===trackStatsSelect.val
   drawChart(rows, goal);
 }
 
+// Chart with extra padding so labels never clip borders
 function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const DPR=devicePixelRatio||1; const w=chartCanvas.clientWidth*DPR; const h=chartCanvas.clientHeight*DPR; if(chartCanvas.width!==w) chartCanvas.width=w; if(chartCanvas.height!==h) chartCanvas.height=h; ctx.clearRect(0,0,w,h);
-  const padL=46, padR=10, padT=10, padB=28; const pw=w-padL-padR, ph=h-padT-padB;
-  const times=rows.map(r=>r.timeSec); const minT=rows.length?Math.min(...times, goalSec):8*60; const maxT=rows.length?Math.max(...times, goalSec):14*60; const y0=Math.max(0, Math.floor((minT-30)/30)*30), y1=Math.ceil((maxT+30)/30)*30;
-  const X=i => padL + (rows.length<=1? pw/2 : i*(pw/(rows.length-1))); const Y=s => padT + (1 - (s - y0)/(y1-y0))*ph;
-  // grid
-  ctx.strokeStyle='#e5e5e5'; ctx.lineWidth=1*DPR; ctx.beginPath(); for(let s=y0; s<=y1; s+=60){ const yy=Y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy);} ctx.stroke();
-  // y labels
-  ctx.fillStyle='#333'; ctx.font=`${11*DPR}px system-ui, sans-serif`; ctx.textAlign='right'; ctx.textBaseline='middle'; for(let s=y0; s<=y1; s+=60){ ctx.fillText(fmtSec(s), padL-6, Y(s)); }
-  // x labels (sparse)
-  ctx.textAlign='center'; ctx.textBaseline='top'; const step=Math.max(1, Math.floor(rows.length/6)); rows.forEach((r,i)=>{ if(i%step===0 || i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), X(i), h-padB+4); }});
-  // goal line
-  ctx.strokeStyle='#7aa2ff'; ctx.setLineDash([5*DPR,5*DPR]); ctx.beginPath(); ctx.moveTo(padL,Y(goalSec)); ctx.lineTo(w-padR,Y(goalSec)); ctx.stroke(); ctx.setLineDash([]);
-  // path
+  const padL=58, padR=16, padT=22, padB=42; // generous padding
+  const pw=w-padL-padR, ph=h-padT-padB;
+  const times=rows.map(r=>r.timeSec);
+  const minT=rows.length?Math.min(...times, goalSec):8*60;
+  const maxT=rows.length?Math.max(...times, goalSec):14*60;
+  // add margins so top/bottom points don't touch border
+  const y0=Math.max(0, Math.floor((minT-45)/30)*30);
+  const y1=Math.ceil((maxT+45)/30)*30;
+  const X=i => padL + (rows.length<=1? pw/2 : i*(pw/(rows.length-1)));
+  const Y=s => padT + (1 - (s - y0)/(y1 - y0)) * ph;
+
+  // Light grid
+  ctx.save();
+  ctx.translate(0.5,0.5); // crisp lines
+  ctx.strokeStyle='#e5e5e5'; ctx.lineWidth=1*DPR;
+  ctx.beginPath(); for(let s=y0; s<=y1; s+=60){ const yy=Y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy);} ctx.stroke();
+  ctx.restore();
+
+  // Y axis labels inside padding (won't clip)
+  ctx.fillStyle='#333'; ctx.font=`${11*DPR}px system-ui, sans-serif`; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let s=y0; s<=y1; s+=60){ ctx.fillText(fmtSec(s), padL-8, Y(s)); }
+
+  // X axis labels (sparse)
+  ctx.textAlign='center'; ctx.textBaseline='top'; const step=Math.max(1, Math.floor(rows.length/6));
+  rows.forEach((r,i)=>{ if(i%step===0 || i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), X(i), h-padB+6); }});
+
+  // Goal line (dashed)
+  ctx.strokeStyle='#7aa2ff'; ctx.setLineDash([6*DPR,6*DPR]); ctx.beginPath(); ctx.moveTo(padL, Y(goalSec)); ctx.lineTo(w-padR, Y(goalSec)); ctx.stroke(); ctx.setLineDash([]);
+
+  // Run path
   if(rows.length){ ctx.strokeStyle='#147a0a'; ctx.lineWidth=2*DPR; ctx.beginPath(); rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi); }); ctx.stroke(); }
-  // points
+  // Points
   rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); ctx.fillStyle = r.timeSec<=goalSec? '#147a0a' : '#b00020'; ctx.beginPath(); ctx.arc(xi,yi,3.5*DPR,0,Math.PI*2); ctx.fill(); });
 }
 
@@ -357,8 +363,8 @@ function render(){ const cur=Router.current(); Object.entries(views).forEach(([k
 
 // Boot
 render();
-// Auto-connect if we already have a sync code
-if(fb.code){ connectCloud(); }
+// Auto-connect with default or saved code
+connectCloud();
 window.addEventListener('resize', ()=>{ if(Router.current()==='stats') renderStats(); });
 </script>
 </body>
