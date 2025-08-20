@@ -22,6 +22,8 @@
     .nav{display:flex; gap:6px; flex-wrap:wrap}
     .btn{appearance:none; -webkit-appearance:none; cursor:pointer; border:1px solid var(--line); background:#f8f8f8; color:var(--ink); padding:6px 10px; border-radius:6px; font-weight:600}
     .btn.primary{background:#e9f0ff; border-color:#bcd0ff; color:#0b3fb0}
+    .btn.sm{padding:4px 8px; font-size:12px}
+    .btn.danger{background:#ffecec; border-color:#f2b8b5; color:#b00020}
 
     .panel{border:1px solid var(--line); border-radius:6px; padding:12px; background:#fff; margin-bottom:12px}
 
@@ -45,8 +47,9 @@
     .col-pace{min-width: 8ch}
     .col-delta{min-width: 8ch}
     .col-note{min-width: 18ch}
+    .col-act{min-width: 8ch}
 
-    /* Chart: bigger padding so labels aren't clipped */
+    /* Chart: bigger padding so labels aren't clipped (now dynamic in JS) */
     #chart{width:100%; height:260px; border:1px solid var(--line); border-radius:6px; background:#fff}
 
     .kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px}
@@ -157,6 +160,7 @@
               <th class="col-pace">Pace</th>
               <th class="col-delta">Δ goal</th>
               <th class="col-note">Note</th>
+              <th class="col-act">Delete</th>
             </tr>
           </thead>
           <tbody id="runsTable"></tbody>
@@ -310,6 +314,21 @@ saveRunBtn.addEventListener('click', async ()=>{
 
 saveGoalBtn.addEventListener('click', async ()=>{ const id=trackStatsSelect.value; const sec=parseTimeToSec(goalInput.value); if(!isFinite(sec)||sec<=0){ goalInput.focus(); goalInput.select(); return; } state.goals[id]=Math.round(sec); saveJson(LS_KEYS.goals, state.goals); await pushToCloud(); renderStats(); });
 
+/* NEW: Delete run entry (with confirm) */
+runsTableBody.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button[data-del]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-del');
+  const run = state.runs.find(r=>r.id===id);
+  if(!run) return;
+  if(!confirm(`Delete entry on ${fmtDate(run.dateISO)} (${fmtSec(run.timeSec)})?`)) return;
+  state.runs = state.runs.filter(r=>r.id!==id);
+  saveJson(LS_KEYS.runs, state.runs);
+  await pushToCloud();
+  renderStats();
+  setRunDefaults();
+});
+
 function renderStats(){ const t=state.tracks.find(x=>x.id===trackStatsSelect.value); if(!t) return; const goal = state.goals[t.id] ?? 9*60; goalInput.value = fmtSec(goal);
   const rows = state.runs.filter(r=>r.trackId===t.id).sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO));
   if(!rows.length){ bestTimeEl.textContent=avgTimeEl.textContent=lastTimeEl.textContent=gapToGoalEl.textContent='–'; runsTableBody.innerHTML=''; drawChart([], goal); return; }
@@ -317,45 +336,85 @@ function renderStats(){ const t=state.tracks.find(x=>x.id===trackStatsSelect.val
   const best=Math.min(...times); const avg=Math.round(times.reduce((x,y)=>x+y,0)/times.length);
   bestTimeEl.textContent=fmtSec(best); avgTimeEl.textContent=fmtSec(avg); lastTimeEl.textContent=fmtSec(rows.at(-1).timeSec);
   const gap = best - goal; gapToGoalEl.textContent = (gap<=0? '✅ ':'+') + fmtSec(Math.abs(gap));
-  runsTableBody.innerHTML = rows.map(r=>{ const d=fmtDate(r.dateISO); const tm=fmtSec(r.timeSec); const pc=paceMinPerKm(r.timeSec,t.distanceKm); const delta=r.timeSec-goal; const ds = delta===0 ? '0:00' : (delta>0? '+'+fmtSec(delta) : '−'+fmtSec(-delta)); const color = delta>0? 'style="color: var(--bad)"' : 'style="color: var(--ok)"'; return `<tr><td class="col-date">${d}</td><td class="num col-time">${tm}</td><td class="num col-pace">${pc}</td><td class="num col-delta" ${color}>${ds}</td><td class="col-note">${(r.note||'').replace(/</g,'&lt;')}</td></tr>`; }).join('');
+  runsTableBody.innerHTML = rows.map(r=>{
+      const d=fmtDate(r.dateISO); const tm=fmtSec(r.timeSec); const pc=paceMinPerKm(r.timeSec,t.distanceKm);
+      const delta=r.timeSec-goal; const ds = delta===0 ? '0:00' : (delta>0? '+'+fmtSec(delta) : '−'+fmtSec(-delta));
+      const color = delta>0? 'style="color: var(--bad)"' : 'style="color: var(--ok)"';
+      const note = (r.note||'').replace(/</g,'&lt;');
+      return `<tr>
+        <td class="col-date">${d}</td>
+        <td class="num col-time">${tm}</td>
+        <td class="num col-pace">${pc}</td>
+        <td class="num col-delta" ${color}>${ds}</td>
+        <td class="col-note">${note}</td>
+        <td class="col-act"><button class="btn sm danger" data-del="${r.id}">Delete</button></td>
+      </tr>`;
+    }).join('');
   drawChart(rows, goal);
 }
 
-// Chart with extra padding so labels never clip borders
-function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const DPR=devicePixelRatio||1; const w=chartCanvas.clientWidth*DPR; const h=chartCanvas.clientHeight*DPR; if(chartCanvas.width!==w) chartCanvas.width=w; if(chartCanvas.height!==h) chartCanvas.height=h; ctx.clearRect(0,0,w,h);
-  const padL=58, padR=16, padT=22, padB=42; // generous padding
-  const pw=w-padL-padR, ph=h-padT-padB;
+/* Chart with dynamic left padding so Y labels never clip */
+function drawChart(rows, goalSec){
+  const ctx=chartCanvas.getContext('2d');
+  const DPR=window.devicePixelRatio||1;
+
+  const w=chartCanvas.clientWidth*DPR;
+  const h=chartCanvas.clientHeight*DPR;
+  if(chartCanvas.width!==w) chartCanvas.width=w;
+  if(chartCanvas.height!==h) chartCanvas.height=h;
+  ctx.clearRect(0,0,w,h);
+
+  // Determine Y range
   const times=rows.map(r=>r.timeSec);
   const minT=rows.length?Math.min(...times, goalSec):8*60;
   const maxT=rows.length?Math.max(...times, goalSec):14*60;
-  // add margins so top/bottom points don't touch border
   const y0=Math.max(0, Math.floor((minT-45)/30)*30);
   const y1=Math.ceil((maxT+45)/30)*30;
+
+  // Measure widest Y label
+  const labels=[];
+  for(let s=y0; s<=y1; s+=60) labels.push(fmtSec(s));
+  ctx.save();
+  ctx.font=`${11*DPR}px system-ui, sans-serif`;
+  let maxLabelW=0;
+  for(const txt of labels){ const m=ctx.measureText(txt); if(m.width>maxLabelW) maxLabelW=m.width; }
+  ctx.restore();
+
+  const padL = Math.ceil(maxLabelW + 14*DPR); // dynamic left padding
+  const padR = 16*DPR, padT = 22*DPR, padB = 42*DPR;
+  const pw=w-padL-padR, ph=h-padT-padB;
   const X=i => padL + (rows.length<=1? pw/2 : i*(pw/(rows.length-1)));
   const Y=s => padT + (1 - (s - y0)/(y1 - y0)) * ph;
 
-  // Light grid
+  // Grid
   ctx.save();
-  ctx.translate(0.5,0.5); // crisp lines
+  ctx.translate(0.5*DPR,0.5*DPR); // crisp
   ctx.strokeStyle='#e5e5e5'; ctx.lineWidth=1*DPR;
-  ctx.beginPath(); for(let s=y0; s<=y1; s+=60){ const yy=Y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy);} ctx.stroke();
+  ctx.beginPath();
+  for(let s=y0; s<=y1; s+=60){ const yy=Y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy); }
+  ctx.stroke();
   ctx.restore();
 
-  // Y axis labels inside padding (won't clip)
-  ctx.fillStyle='#333'; ctx.font=`${11*DPR}px system-ui, sans-serif`; ctx.textAlign='right'; ctx.textBaseline='middle';
-  for(let s=y0; s<=y1; s+=60){ ctx.fillText(fmtSec(s), padL-8, Y(s)); }
+  // Y labels (now safely inside padding)
+  ctx.fillStyle='#333';
+  ctx.font=`${11*DPR}px system-ui, sans-serif`;
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let s=y0; s<=y1; s+=60){ ctx.fillText(fmtSec(s), padL - 6*DPR, Y(s)); }
 
-  // X axis labels (sparse)
-  ctx.textAlign='center'; ctx.textBaseline='top'; const step=Math.max(1, Math.floor(rows.length/6));
-  rows.forEach((r,i)=>{ if(i%step===0 || i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), X(i), h-padB+6); }});
+  // X labels
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  const step=Math.max(1, Math.floor(rows.length/6));
+  rows.forEach((r,i)=>{ if(i%step===0 || i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), X(i), h-padB+6*DPR); }});
 
   // Goal line (dashed)
-  ctx.strokeStyle='#7aa2ff'; ctx.setLineDash([6*DPR,6*DPR]); ctx.beginPath(); ctx.moveTo(padL, Y(goalSec)); ctx.lineTo(w-padR, Y(goalSec)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='#7aa2ff'; ctx.setLineDash([6*DPR,6*DPR]);
+  ctx.beginPath(); ctx.moveTo(padL, Y(goalSec)); ctx.lineTo(w-padR, Y(goalSec)); ctx.stroke();
+  ctx.setLineDash([]);
 
   // Run path
   if(rows.length){ ctx.strokeStyle='#147a0a'; ctx.lineWidth=2*DPR; ctx.beginPath(); rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi); }); ctx.stroke(); }
   // Points
-  rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); ctx.fillStyle = r.timeSec<=goalSec? '#147a0a' : '#b00020'; ctx.beginPath(); ctx.arc(xi,yi,3.5*DPR,0,Math.PI*2); ctx.fill(); });
+  rows.forEach((r)=>{ const xi=X(rows.indexOf(r)), yi=Y(r.timeSec); ctx.fillStyle = r.timeSec<=goalSec? '#147a0a' : '#b00020'; ctx.beginPath(); ctx.arc(xi,yi,3.5*DPR,0,Math.PI*2); ctx.fill(); });
 }
 
 function fillSelectIfEmpty(sel, arr){ if(!sel.value && arr[0]) sel.value = arr[0].id; }
