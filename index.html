@@ -3,539 +3,341 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trattbergrunde Run Tracker</title>
+  <meta name="theme-color" content="#0b1222" />
+  <title>Run Tracker — Trattbergrunde & Lemprunde</title>
   <style>
+    /* =====================
+       MOBILE‑FIRST DESIGN
+       ===================== */
     :root {
-      --bg:#0f172a;          /* slate-900 */
-      --card:#111827;        /* gray-900 */
-      --muted:#94a3b8;       /* slate-400 */
-      --text:#e5e7eb;        /* gray-200 */
-      --accent:#22c55e;      /* green-500 */
-      --accent-2:#38bdf8;    /* sky-400 */
-      --danger:#ef4444;      /* red-500 */
-      --warning:#f59e0b;     /* amber-500 */
-      --border:#1f2937;      /* gray-800 */
+      --bg: #0b1222;          /* deep indigo */
+      --bg2:#0f172a;          /* slate */
+      --card:#0d1428;         /* panel */
+      --muted:#96a3b8;        /* slate-400 */
+      --text:#e6e7eb;         /* gray-200 */
+      --accent:#22c55e;       /* green-500 */
+      --accent-2:#38bdf8;     /* sky-400 */
+      --danger:#ef4444;       /* red-500 */
+      --border:#1f2937;       /* gray-800 */
+      --radius: 14px;
+      --space: 14px;
+      --container-w: min(100%, 720px);
+      --vh: 100vh;            /* updated via JS for mobile chrome */
     }
+
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body {
       margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-      color: var(--text); background: radial-gradient(1200px 700px at 70% -100px, #1f2937 0%, #0b1222 40%, var(--bg) 70%);
+      color: var(--text);
+      /* responsive background that subtly adapts to height */
+      background: radial-gradient(1200px 60vh at 70% -20vh, var(--bg2) 0%, #0b1222 40%, var(--bg) 70%);
+      background-attachment: fixed;
     }
-    a { color: var(--accent-2); text-decoration: none; }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f7fafc; --bg2:#e9eef6; --card:#ffffff; --text:#0f172a; --muted:#475569; --border:#e5e7eb; }
+      body{ background: linear-gradient(180deg, var(--bg2), var(--bg)); }
+    }
 
-    .container { max-width: 980px; margin: 0 auto; padding: 24px; }
-    .nav { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom: 16px; }
-    .nav h1 { font-size: clamp(18px, 2.4vw, 28px); margin:0; letter-spacing:0.2px; }
+    /* layout */
+    .wrap { max-width: var(--container-w); margin: 0 auto; padding: calc(var(--space) * 1.2); }
+    .nav { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom: var(--space); }
+    .title { font-size: clamp(18px, 5vw, 22px); margin:0; font-weight:700; letter-spacing:.2px; }
+    .subtle { color: var(--muted); font-weight:500; }
 
-    .card { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); border:1px solid var(--border); border-radius:16px; padding:18px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-    .grid { display:grid; grid-template-columns: repeat(12, 1fr); gap:14px; }
-
-    .btn { cursor:pointer; border:1px solid var(--border); background:#0b1222; color:var(--text); padding:10px 14px; border-radius:12px; transition: transform .05s ease, background .2s ease, box-shadow .2s ease; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 6px 20px rgba(0,0,0,0.25); }
-    .btn:hover { background:#0e1630; }
+    .tabs { display:flex; gap:8px; }
+    .btn { -webkit-tap-highlight-color: transparent; cursor:pointer; border:1px solid var(--border); background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); color:var(--text); padding:10px 12px; border-radius:12px; font-weight:600; }
     .btn:active { transform: translateY(1px); }
-    .btn-primary { background:linear-gradient(180deg, #1f6c3b, #114f2a); border-color:#174b2f; }
-    .btn-primary:hover { background:linear-gradient(180deg, #238043, #145f33); }
+    .btn-primary { background:linear-gradient(180deg, #176236, #0f4a29); border-color:#174b2f; }
 
-    .pill { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:100px; background:#0b1222; border:1px solid var(--border); color:var(--muted); }
+    .card { background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)); border:1px solid var(--border); border-radius: var(--radius); padding: calc(var(--space) * 1.1); box-shadow: 0 10px 30px rgba(0,0,0,.28); }
 
-    label { display:block; font-size: 13px; color: var(--muted); margin-bottom:6px; }
-    input, select, textarea { width:100%; padding:10px 12px; background:#0a1326; color:var(--text); border:1px solid var(--border); border-radius:10px; outline:none; }
-    input::placeholder, textarea::placeholder { color:#6b7280; }
-    textarea { resize: vertical; min-height: 72px; }
+    .stack { display:flex; flex-direction:column; gap: 12px; }
+    .row { display:flex; gap: 12px; }
+    .row.wrap { flex-wrap: wrap; }
+    .grow { flex: 1 1 160px; }
 
-    .menu {
-      display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:16px; margin-top: 12px;
+    label { font-size: 12px; color: var(--muted); display:block; margin-bottom:6px; }
+    input, select, textarea { width:100%; padding:12px; border-radius:12px; background: #0a1326; color: var(--text); border:1px solid var(--border); outline:none; }
+    textarea { resize: vertical; min-height: 84px; }
+
+    /* form width caps to avoid edge-to-edge stretching on phones */
+    .cap { max-width: 520px; }
+    .cap-sm { max-width: 360px; }
+
+    .pill { align-self:flex-start; font-size:12px; color:var(--muted); border:1px solid var(--border); background:#0b1222; padding:8px 10px; border-radius:999px; }
+
+    /* table (stats) */
+    table { width:100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align:left; }
+
+    /* chart responsive height */
+    #chart { width:100%; height: 32vh; min-height: 230px; max-height: 420px; display:block; border:1px solid var(--border); border-radius: var(--radius); background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.00)); }
+
+    .legend { display:flex; gap:12px; align-items:center; flex-wrap: wrap; margin-top: 6px; font-size:12px; color:var(--muted); }
+    .dot { width:10px; height:10px; border-radius: 50%; display:inline-block; }
+
+    .footer { color:var(--muted); font-size:12px; margin-top: 12px; text-align:center; }
+
+    /* larger screens: gently center and widen */
+    @media (min-width: 760px){
+      .wrap { padding: 24px; }
+      .card { padding: 18px; }
+      #chart { height: 360px; }
     }
-    .menu .card { padding:22px; cursor:pointer; user-select:none; }
-    .menu h3 { margin:0 0 6px 0; }
-    .menu p { margin:0; color:var(--muted); }
-
-    .hidden { display:none !important; }
-    .section-title { font-weight:600; letter-spacing:.2px; margin:6px 0 10px; }
-    .muted { color: var(--muted); }
-
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding: 10px 8px; border-bottom: 1px solid var(--border); text-align:left; font-size:14px; }
-    th { color:#cbd5e1; font-weight:600; }
-    tr:hover td { background-color: rgba(255,255,255,0.03); }
-
-    .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin: 10px 0 6px; }
-    .kpi { padding:14px; border:1px solid var(--border); border-radius:14px; background:#0b1222; }
-    .kpi .label { color:var(--muted); font-size:12px; }
-    .kpi .value { font-size:20px; font-weight:700; }
-
-    canvas { width:100%; height:360px; display:block; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0)); border:1px solid var(--border); border-radius:16px; }
-    .legend { display:flex; gap:12px; align-items:center; flex-wrap: wrap; margin-top: 8px; }
-    .dot { width:10px; height:10px; border-radius:100px; display:inline-block; }
-
-    .footer { color:var(--muted); font-size:12px; margin-top: 14px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="nav">
-      <h1>🏃‍♂️ Trattbergrunde Run Tracker <span class="muted" style="font-weight:400">(2.1 km)</span></h1>
-      <div style="display:flex; gap:8px; align-items:center;">
+  <div class="wrap">
+    <header class="nav">
+      <h1 class="title">🏃‍♂️ Run Tracker <span class="subtle">Trattbergrunde 2.1 km • Lemprunde 1.13 km</span></h1>
+      <nav class="tabs">
         <button class="btn" id="homeBtn">Home</button>
         <button class="btn" id="runBtn">Run</button>
         <button class="btn" id="statsBtn">Stats</button>
-      </div>
-    </div>
+      </nav>
+    </header>
 
-    <!-- Home / Start menu -->
-    <section id="view-home" class="card">
-      <div class="grid">
-        <div class="menu" style="grid-column: 1 / -1;">
-          <div class="card" onclick="Router.go('run')">
-            <h3>Start a Run</h3>
-            <p>Log your time and add a note. Date is added automatically.</p>
-          </div>
-          <div class="card" onclick="Router.go('stats')">
-            <h3>Stats & Charts</h3>
-            <p>See past runs, visualize progress, and set a goal time.</p>
-          </div>
-        </div>
-      </div>
+    <!-- HOME -->
+    <section id="view-home" class="card stack">
+      <div class="pill">Start</div>
+      <button class="btn btn-primary" onclick="Router.go('run')">➕ Start a run</button>
+      <button class="btn" onclick="Router.go('stats')">📊 See stats</button>
     </section>
 
-    <!-- Run view -->
-    <section id="view-run" class="card hidden">
-      <div class="grid">
-        <div style="grid-column: 1 / -1;">
-          <div class="pill">⛰️ Track selection</div>
-        </div>
-        <div style="grid-column: span 6; min-width: 260px;">
+    <!-- RUN -->
+    <section id="view-run" class="card stack hidden">
+      <span class="pill">⛰️ Track</span>
+      <div class="row wrap cap">
+        <div class="grow cap-sm">
           <label for="trackSelect">Track</label>
           <select id="trackSelect"></select>
         </div>
-        <div style="grid-column: span 6; min-width: 260px; display:flex; gap:12px; align-items:end;">
-          <div style="flex:1;">
-            <label for="distance">Distance (km)</label>
-            <input id="distance" type="number" step="0.01" min="0" disabled />
-          </div>
-          <div style="flex:1;">
-            <label for="attempts">Logged attempts</label>
-            <input id="attempts" type="number" disabled />
-          </div>
+        <div class="grow cap-sm">
+          <label for="distance">Distance (km)</label>
+          <input id="distance" type="number" step="0.01" min="0" disabled />
         </div>
+        <div class="grow cap-sm">
+          <label for="attempts">Logged attempts</label>
+          <input id="attempts" type="number" disabled />
+        </div>
+      </div>
 
-        <div style="grid-column: 1 / -1; margin-top:6px;">
-          <div class="pill">⏱️ Log a run</div>
-        </div>
-        <div style="grid-column: span 4; min-width: 220px;">
-          <label for="timeInput">Time (mm:ss or m:ss or mm)</label>
+      <span class="pill">⏱️ Log a run</span>
+      <div class="row wrap cap">
+        <div class="grow cap-sm">
+          <label for="timeInput">Time (mm:ss or mm)</label>
           <input id="timeInput" type="text" inputmode="numeric" placeholder="e.g. 09:00" />
         </div>
-        <div style="grid-column: span 4; min-width: 220px;">
+        <div class="grow cap-sm">
           <label for="pace">Pace (min/km)</label>
           <input id="pace" type="text" disabled />
         </div>
-        <div style="grid-column: span 4; min-width: 220px;">
+        <div class="grow cap-sm">
           <label for="dateAuto">Date</label>
           <input id="dateAuto" type="text" disabled />
         </div>
-        <div style="grid-column: 1 / -1;">
-          <label for="noteInput">Note (optional)</label>
-          <textarea id="noteInput" placeholder="Why was today fast/slow?"></textarea>
-        </div>
-        <div style="grid-column: 1 / -1; display:flex; gap:10px;">
-          <button class="btn btn-primary" id="saveRunBtn">Save run</button>
-          <div id="saveMsg" class="muted" aria-live="polite"></div>
-        </div>
+      </div>
+      <div class="cap">
+        <label for="noteInput">Note (optional)</label>
+        <textarea id="noteInput" placeholder="Why was today fast/slow?"></textarea>
+      </div>
+      <div class="row cap">
+        <button class="btn btn-primary" id="saveRunBtn">Save run</button>
+        <div id="saveMsg" class="subtle" aria-live="polite" style="align-self:center"></div>
       </div>
     </section>
 
-    <!-- Stats view -->
-    <section id="view-stats" class="card hidden">
-      <div class="grid">
-        <div style="grid-column: 1 / -1;">
-          <div class="pill">📊 Stats & Chart</div>
-        </div>
-        <div style="grid-column: span 6; min-width: 240px;">
+    <!-- STATS -->
+    <section id="view-stats" class="card stack hidden">
+      <span class="pill">📊 Stats</span>
+      <div class="row wrap cap">
+        <div class="grow cap-sm">
           <label for="trackStatsSelect">Track</label>
           <select id="trackStatsSelect"></select>
         </div>
-        <div style="grid-column: span 6; min-width: 240px; display:flex; gap:12px; align-items:end;">
-          <div style="flex:1;">
-            <label for="goalInput">Goal time (mm:ss)</label>
-            <input id="goalInput" type="text" placeholder="e.g. 09:00" />
-          </div>
-          <div>
-            <button class="btn" id="saveGoalBtn" style="margin-top:2px;">Set goal</button>
+        <div class="grow cap-sm">
+          <label for="goalInput">Goal time (mm:ss)</label>
+          <div class="row">
+            <input class="grow" id="goalInput" type="text" placeholder="09:00" />
+            <button class="btn" id="saveGoalBtn">Set</button>
           </div>
         </div>
+      </div>
 
-        <div class="kpis" style="grid-column: 1 / -1;">
-          <div class="kpi"><div class="label">Best time</div><div class="value" id="bestTime">–</div></div>
-          <div class="kpi"><div class="label">Average time</div><div class="value" id="avgTime">–</div></div>
-          <div class="kpi"><div class="label">Last run</div><div class="value" id="lastTime">–</div></div>
-          <div class="kpi"><div class="label">Gap to goal</div><div class="value" id="gapToGoal">–</div></div>
+      <!-- KPIs -->
+      <div class="row wrap cap">
+        <div class="grow card" style="padding:12px; background:#0a1226;">
+          <div class="subtle" style="font-size:12px;">Best time</div>
+          <div style="font-weight:800; font-size:20px;" id="bestTime">–</div>
         </div>
+        <div class="grow card" style="padding:12px; background:#0a1226;">
+          <div class="subtle" style="font-size:12px;">Average time</div>
+          <div style="font-weight:800; font-size:20px;" id="avgTime">–</div>
+        </div>
+        <div class="grow card" style="padding:12px; background:#0a1226;">
+          <div class="subtle" style="font-size:12px;">Last run</div>
+          <div style="font-weight:800; font-size:20px;" id="lastTime">–</div>
+        </div>
+        <div class="grow card" style="padding:12px; background:#0a1226;">
+          <div class="subtle" style="font-size:12px;">Gap to goal</div>
+          <div style="font-weight:800; font-size:20px;" id="gapToGoal">–</div>
+        </div>
+      </div>
 
-        <div style="grid-column: 1 / -1;">
-          <canvas id="chart" width="1000" height="400" aria-label="Progress chart"></canvas>
-          <div class="legend">
-            <span class="dot" style="background:var(--accent)"></span><span class="muted">Run time</span>
-            <span class="dot" style="background:var(--accent-2)"></span><span class="muted">Goal</span>
-            <span class="dot" style="background:var(--danger)"></span><span class="muted">Above goal</span>
-            <span class="dot" style="background:var(--accent)"></span><span class="muted">At/under goal</span>
-          </div>
-        </div>
+      <!-- Chart -->
+      <canvas id="chart" aria-label="Progress chart"></canvas>
+      <div class="legend">
+        <span class="dot" style="background:var(--accent)"></span>Run
+        <span class="dot" style="background:var(--accent-2)"></span>Goal
+        <span class="dot" style="background:var(--danger)"></span>Above goal
+        <span class="dot" style="background:var(--accent)"></span>At/under goal
+      </div>
 
-        <div style="grid-column: 1 / -1; margin-top: 10px;">
-          <div class="pill">🗂️ All entries</div>
-        </div>
-        <div style="grid-column: 1 / -1; overflow:auto;">
+      <!-- Table -->
+      <div class="card" style="background:#0a1226;">
+        <div class="subtle" style="margin-bottom:8px;">All entries</div>
+        <div style="overflow:auto; -webkit-overflow-scrolling: touch;">
           <table id="runsTable">
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Pace (min/km)</th>
-                <th>Δ to goal</th>
+                <th>Pace</th>
+                <th>Δ goal</th>
                 <th>Note</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
-
       </div>
     </section>
 
-    <div class="footer">Data is stored locally in your browser (localStorage). Single‑file app — no internet required.</div>
+    <p class="footer">Data stays on your phone (localStorage). Single file, offline ready.</p>
   </div>
 
 <script>
-/* ---------------- Utilities ---------------- */
-const LS_KEYS = {
-  tracks: 'runlog.tracks',
-  runs: 'runlog.runs',
-  goals: 'runlog.goals',
-};
-
-function loadJson(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key)) ?? structuredClone(fallback); }
-  catch { return structuredClone(fallback); }
+/* Viewport height fix for mobile browsers */
+function setVH(){
+  document.documentElement.style.setProperty('--vh', window.innerHeight + 'px');
 }
+setVH();
+window.addEventListener('resize', setVH);
+window.addEventListener('orientationchange', setVH);
+
+/* ---------------- Utilities ---------------- */
+const LS_KEYS = { tracks:'runlog.tracks', runs:'runlog.runs', goals:'runlog.goals' };
+const $ = sel => document.querySelector(sel);
+
+function loadJson(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? structuredClone(fallback); } catch { return structuredClone(fallback); } }
 function saveJson(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-function fmtDate(d) {
-  const dt = (d instanceof Date) ? d : new Date(d);
-  // YYYY‑MM‑DD
-  return dt.toLocaleDateString(undefined, { year:'numeric', month:'2-digit', day:'2-digit' });
-}
-function pad(n){ return n.toString().padStart(2, '0'); }
-function fmtSec(sec) {
-  if (!isFinite(sec) || sec <= 0) return '–';
-  const m = Math.floor(sec/60), s = Math.round(sec % 60);
-  return `${m}:${pad(s)}`;
-}
-function parseTimeToSec(input) {
-  if (!input) return NaN;
-  const s = String(input).trim().toLowerCase();
-  if (s.includes(':')) {
-    const parts = s.split(':').map(Number);
-    if (parts.length === 2) return parts[0]*60 + parts[1];
-    if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
-  }
-  if (s.endsWith('s')) return parseFloat(s)*1;
-  // default assume minutes if plain number or ends with m/min
-  const num = parseFloat(s.replace('min','').replace('m',''));
-  return isNaN(num) ? NaN : num*60;
-}
-function paceMinPerKm(timeSec, km) {
-  if (!isFinite(timeSec) || !isFinite(km) || km <= 0) return '–';
-  const secPerKm = timeSec / km;
-  return fmtSec(secPerKm);
-}
+function fmtDate(d){ const dt = (d instanceof Date) ? d : new Date(d); return dt.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}); }
+function pad(n){ return n.toString().padStart(2,'0'); }
+function fmtSec(sec){ if(!isFinite(sec)||sec<=0) return '–'; const m=Math.floor(sec/60), s=Math.round(sec%60); return `${m}:${pad(s)}`; }
+function parseTimeToSec(input){ if(!input) return NaN; const s=String(input).trim().toLowerCase(); if(s.includes(':')){ const p=s.split(':').map(Number); if(p.length===2) return p[0]*60+p[1]; if(p.length===3) return p[0]*3600+p[1]*60+p[2]; } if(s.endsWith('s')) return parseFloat(s); const num=parseFloat(s.replace('min','').replace('m','')); return isNaN(num)?NaN:num*60; }
+function paceMinPerKm(timeSec, km){ if(!isFinite(timeSec)||!isFinite(km)||km<=0) return '–'; return fmtSec(timeSec/km); }
 
-/* ---------------- Data Model ---------------- */
-let state = {
-  tracks: loadJson(LS_KEYS.tracks, []),
-  runs:   loadJson(LS_KEYS.runs,   []), // each: {id, trackId, dateISO, timeSec, note}
-  goals:  loadJson(LS_KEYS.goals,  {}), // map trackId -> goalSec
-};
+/* ---------------- Data ---------------- */
+let state = { tracks: loadJson(LS_KEYS.tracks, []), runs: loadJson(LS_KEYS.runs, []), goals: loadJson(LS_KEYS.goals, {}) };
 
-// Seed default track if none
-if (!state.tracks.length) {
-  state.tracks = [
-    { id: 'trattbergrunde', name: 'Trattbergrunde', distanceKm: 2.1 }
-  ];
+// Ensure both tracks exist (without nuking existing data)
+const defaults = [
+  { id:'trattbergrunde', name:'Trattbergrunde', distanceKm:2.1 },
+  { id:'lemprunde', name:'Lemprunde', distanceKm:1.13 },
+];
+if(!state.tracks.length){
+  state.tracks = defaults;
   saveJson(LS_KEYS.tracks, state.tracks);
+}else{
+  // add any missing default tracks
+  let changed=false;
+  for(const t of defaults){ if(!state.tracks.find(x=>x.id===t.id)){ state.tracks.push(t); changed=true; } }
+  if(changed) saveJson(LS_KEYS.tracks, state.tracks);
 }
 
 /* ---------------- Routing ---------------- */
-const Router = {
-  go(view){
-    window.location.hash = view;
-  },
-  current(){ return window.location.hash.replace('#','') || 'home'; }
-};
-
+const views = { home: $('#view-home'), run: $('#view-run'), stats: $('#view-stats') };
+const Router = { go(view){ location.hash=view; }, current(){ return location.hash.replace('#','')||'home'; } };
 window.addEventListener('hashchange', render);
 
 /* ---------------- Elements ---------------- */
-const views = {
-  home:  document.getElementById('view-home'),
-  run:   document.getElementById('view-run'),
-  stats: document.getElementById('view-stats'),
-};
+const trackSelect = $('#trackSelect');
+const distanceInput = $('#distance');
+const attemptsInput = $('#attempts');
+const timeInput = $('#timeInput');
+const paceInput = $('#pace');
+const dateAuto = $('#dateAuto');
+const noteInput = $('#noteInput');
+const saveRunBtn = $('#saveRunBtn');
+const saveMsg = $('#saveMsg');
 
-// nav
-document.getElementById('homeBtn').onclick  = () => Router.go('home');
-document.getElementById('runBtn').onclick   = () => Router.go('run');
-document.getElementById('statsBtn').onclick = () => Router.go('stats');
+const trackStatsSelect = $('#trackStatsSelect');
+const goalInput = $('#goalInput');
+const saveGoalBtn = $('#saveGoalBtn');
+const runsTableBody = $('#runsTable tbody');
+const bestTimeEl = $('#bestTime');
+const avgTimeEl = $('#avgTime');
+const lastTimeEl = $('#lastTime');
+const gapToGoalEl = $('#gapToGoal');
+const chartCanvas = $('#chart');
 
-// run view elements
-const trackSelect = document.getElementById('trackSelect');
-const distanceInput = document.getElementById('distance');
-const attemptsInput = document.getElementById('attempts');
-const timeInput = document.getElementById('timeInput');
-const paceInput = document.getElementById('pace');
-const dateAuto = document.getElementById('dateAuto');
-const noteInput = document.getElementById('noteInput');
-const saveRunBtn = document.getElementById('saveRunBtn');
-const saveMsg = document.getElementById('saveMsg');
+/* ---------------- Fill & Defaults ---------------- */
+function fillTrackSelects(){ const opts = state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join(''); trackSelect.innerHTML=opts; trackStatsSelect.innerHTML=opts; }
+function setRunTrackDefaults(){ const t = state.tracks.find(t=>t.id===trackSelect.value); if(!t) return; distanceInput.value=t.distanceKm; attemptsInput.value=state.runs.filter(r=>r.trackId===t.id).length; dateAuto.value=fmtDate(new Date()); updatePacePreview(); }
+function updatePacePreview(){ const t=state.tracks.find(t=>t.id===trackSelect.value); const sec=parseTimeToSec(timeInput.value); paceInput.value=isFinite(sec)?paceMinPerKm(sec, t.distanceKm):'–'; }
 
-// stats view elements
-const trackStatsSelect = document.getElementById('trackStatsSelect');
-const goalInput = document.getElementById('goalInput');
-const saveGoalBtn = document.getElementById('saveGoalBtn');
-const runsTableBody = document.querySelector('#runsTable tbody');
-const bestTimeEl = document.getElementById('bestTime');
-const avgTimeEl = document.getElementById('avgTime');
-const lastTimeEl = document.getElementById('lastTime');
-const gapToGoalEl = document.getElementById('gapToGoal');
-const chartCanvas = document.getElementById('chart');
-
-/* ---------------- Render helpers ---------------- */
-function fillTrackSelects() {
-  const options = state.tracks.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-  trackSelect.innerHTML = options;
-  trackStatsSelect.innerHTML = options;
-}
-
-function setRunTrackDefaults() {
-  const t = state.tracks.find(t => t.id === trackSelect.value);
-  if (!t) return;
-  distanceInput.value = t.distanceKm;
-  const count = state.runs.filter(r => r.trackId === t.id).length;
-  attemptsInput.value = count;
-  dateAuto.value = fmtDate(new Date());
-  updatePacePreview();
-}
-
-function updatePacePreview() {
-  const t = state.tracks.find(t => t.id === trackSelect.value);
+/* ---------------- Save Run ---------------- */
+saveRunBtn.addEventListener('click', ()=>{
+  const t = state.tracks.find(t=>t.id===trackSelect.value);
   const sec = parseTimeToSec(timeInput.value);
-  paceInput.value = isFinite(sec) ? paceMinPerKm(sec, t.distanceKm) : '–';
-}
-
-/* ---------------- Run save ---------------- */
-saveRunBtn.addEventListener('click', () => {
-  const t = state.tracks.find(t => t.id === trackSelect.value);
-  const sec = parseTimeToSec(timeInput.value);
-  if (!isFinite(sec) || sec <= 0) {
-    flashMsg('Please enter a valid time (e.g. 09:00).', true);
-    return;
-  }
-  const entry = {
-    id: crypto.randomUUID(),
-    trackId: t.id,
-    dateISO: new Date().toISOString(),
-    timeSec: Math.round(sec),
-    note: (noteInput.value || '').trim(),
-  };
-  state.runs.push(entry);
-  saveJson(LS_KEYS.runs, state.runs);
-  timeInput.value = '';
-  noteInput.value = '';
-  setRunTrackDefaults();
-  flashMsg('✅ Saved! Check your stats to see the chart.');
+  if(!isFinite(sec)||sec<=0){ flashMsg('Enter a valid time (e.g. 09:00).', true); return; }
+  const entry = { id: crypto.randomUUID(), trackId: t.id, dateISO: new Date().toISOString(), timeSec: Math.round(sec), note: (noteInput.value||'').trim() };
+  state.runs.push(entry); saveJson(LS_KEYS.runs, state.runs);
+  timeInput.value=''; noteInput.value=''; setRunTrackDefaults(); flashMsg('Saved ✅');
 });
+function flashMsg(text, err=false){ saveMsg.textContent=text; saveMsg.style.color = err ? 'var(--danger)' : 'var(--muted)'; setTimeout(()=> saveMsg.textContent='', 2200); }
 
-function flashMsg(text, isError=false) {
-  saveMsg.textContent = text;
-  saveMsg.style.color = isError ? 'var(--danger)' : 'var(--muted)';
-  setTimeout(() => saveMsg.textContent = '', 3000);
-}
-
-/* ---------------- Stats view ---------------- */
-function renderStats() {
-  const t = state.tracks.find(t => t.id === trackStatsSelect.value);
-  if (!t) return;
-  // goal
-  const goalSec = state.goals[t.id] ?? 9*60; // default 9min
-  goalInput.value = fmtSec(goalSec);
-
-  const rows = state.runs.filter(r => r.trackId === t.id).sort((a,b) => new Date(a.dateISO) - new Date(b.dateISO));
-  // KPIs
-  if (!rows.length) {
-    bestTimeEl.textContent = '–';
-    avgTimeEl.textContent = '–';
-    lastTimeEl.textContent = '–';
-    gapToGoalEl.textContent = '–';
-  } else {
-    const times = rows.map(r => r.timeSec);
-    const best = Math.min(...times);
-    const avg = Math.round(times.reduce((x,y)=>x+y,0)/times.length);
-    bestTimeEl.textContent = fmtSec(best);
-    avgTimeEl.textContent = fmtSec(avg);
-    lastTimeEl.textContent = fmtSec(rows[rows.length-1].timeSec);
-    const gap = (best - goalSec);
-    gapToGoalEl.textContent = (gap <= 0 ? '✅ ' : '+') + fmtSec(Math.abs(gap));
-  }
-
-  // Table
-  runsTableBody.innerHTML = rows.map(r => {
-    const dt = fmtDate(r.dateISO);
-    const time = fmtSec(r.timeSec);
-    const pace = paceMinPerKm(r.timeSec, t.distanceKm);
-    const goalSecNow = goalSec;
-    const delta = r.timeSec - goalSecNow;
-    const deltaStr = (delta === 0) ? '0:00' : (delta > 0 ? '+'+fmtSec(delta) : '−'+fmtSec(Math.abs(delta)));
-    const color = delta > 0 ? 'style="color:var(--danger)"' : 'style="color:var(--accent)"';
-    return `<tr>
-      <td>${dt}</td>
-      <td>${time}</td>
-      <td>${pace}</td>
-      <td ${color}>${deltaStr}</td>
-      <td>${(r.note||'').replace(/</g,'&lt;')}</td>
-    </tr>`;
-  }).join('');
-
+/* ---------------- Stats Render ---------------- */
+function renderStats(){ const t = state.tracks.find(t=>t.id===trackStatsSelect.value); if(!t) return; const goalSec = state.goals[t.id] ?? 9*60; goalInput.value = fmtSec(goalSec);
+  const rows = state.runs.filter(r=>r.trackId===t.id).sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO));
+  if(!rows.length){ bestTimeEl.textContent='–'; avgTimeEl.textContent='–'; lastTimeEl.textContent='–'; gapToGoalEl.textContent='–'; }
+  else { const times=rows.map(r=>r.timeSec); const best=Math.min(...times); const avg=Math.round(times.reduce((x,y)=>x+y,0)/times.length); bestTimeEl.textContent=fmtSec(best); avgTimeEl.textContent=fmtSec(avg); lastTimeEl.textContent=fmtSec(rows.at(-1).timeSec); const gap=(best-goalSec); gapToGoalEl.textContent=(gap<=0?'✅ ':'+')+fmtSec(Math.abs(gap)); }
+  runsTableBody.innerHTML = rows.map(r=>{ const dt=fmtDate(r.dateISO); const time=fmtSec(r.timeSec); const pace=paceMinPerKm(r.timeSec, t.distanceKm); const delta=r.timeSec-goalSec; const deltaStr=(delta===0)?'0:00':(delta>0? '+'+fmtSec(delta): '−'+fmtSec(Math.abs(delta))); const color = delta>0? 'style="color:var(--danger)"':'style="color:var(--accent)"'; return `<tr><td>${dt}</td><td>${time}</td><td>${pace}</td><td ${color}>${deltaStr}</td><td>${(r.note||'').replace(/</g,'&lt;')}</td></tr>`; }).join('');
   drawChart(rows, goalSec);
 }
 
-saveGoalBtn.addEventListener('click', () => {
-  const trackId = trackStatsSelect.value;
-  const sec = parseTimeToSec(goalInput.value);
-  if (!isFinite(sec) || sec <= 0) {
-    goalInput.focus();
-    goalInput.select();
-    return alert('Please enter a valid goal (e.g. 09:00).');
-  }
-  state.goals[trackId] = Math.round(sec);
-  saveJson(LS_KEYS.goals, state.goals);
-  renderStats();
-});
+saveGoalBtn.addEventListener('click', ()=>{ const trackId=trackStatsSelect.value; const sec=parseTimeToSec(goalInput.value); if(!isFinite(sec)||sec<=0){ goalInput.focus(); goalInput.select(); return alert('Enter a valid goal (e.g. 09:00).'); } state.goals[trackId]=Math.round(sec); saveJson(LS_KEYS.goals, state.goals); renderStats(); });
 
 /* ---------------- Chart ---------------- */
-function drawChart(rows, goalSec) {
-  const ctx = chartCanvas.getContext('2d');
-  const DPR = window.devicePixelRatio || 1;
-  const w = chartCanvas.clientWidth * DPR;
-  const h = chartCanvas.clientHeight * DPR;
-  if (chartCanvas.width !== w) chartCanvas.width = w;
-  if (chartCanvas.height !== h) chartCanvas.height = h;
-  ctx.clearRect(0,0,w,h);
-
-  // Padding
-  const padL = 60, padR = 18, padT = 20, padB = 40;
-  const plotW = w - padL - padR;
-  const plotH = h - padT - padB;
-
-  // scales
-  const times = rows.map(r => r.timeSec);
-  const minT = rows.length ? Math.min(...times, goalSec) : 8*60; // fallback
-  const maxT = rows.length ? Math.max(...times, goalSec) : 14*60;
-  const yMin = Math.max(0, Math.floor((minT - 30)/30)*30); // 30s grid
-  const yMax = Math.ceil((maxT + 30)/30)*30;
-
-  function x(i) { return padL + (rows.length <= 1 ? plotW/2 : i * (plotW/(rows.length-1))); }
-  function y(sec){ return padT + (1 - (sec - yMin) / (yMax - yMin)) * plotH; }
-
-  // axes
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-  ctx.lineWidth = 1 * DPR;
-  ctx.beginPath();
-  // y gridlines every 30s
-  for (let s = yMin; s <= yMax; s += 30) {
-    const yy = y(s);
-    ctx.moveTo(padL, yy); ctx.lineTo(w - padR, yy);
-  }
-  ctx.stroke();
-
-  // y axis labels
-  ctx.fillStyle = 'rgba(229,231,235,0.9)';
-  ctx.font = `${12*DPR}px system-ui, sans-serif`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-  for (let s = yMin; s <= yMax; s += 60) {
-    const yy = y(s);
-    ctx.fillText(fmtSec(s), padL - 8, yy);
-  }
-
-  // x axis labels (dates)
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  const step = Math.max(1, Math.floor(rows.length / 8));
-  rows.forEach((r, i) => {
-    if (i % step === 0 || i === rows.length - 1) {
-      ctx.fillText(fmtDate(r.dateISO), x(i), h - padB + 8);
-    }
-  });
-
-  // goal line
-  ctx.strokeStyle = 'rgba(56,189,248,0.9)';
-  ctx.setLineDash([6*DPR, 6*DPR]);
-  ctx.beginPath();
-  ctx.moveTo(padL, y(goalSec));
-  ctx.lineTo(w - padR, y(goalSec));
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // vertical distance (Δ) to goal per point + colored marker
-  rows.forEach((r, i) => {
-    const xi = x(i); const yi = y(r.timeSec); const yg = y(goalSec);
-    ctx.strokeStyle = r.timeSec <= goalSec ? 'rgba(34,197,94,0.65)' : 'rgba(239,68,68,0.65)';
-    ctx.lineWidth = 2*DPR;
-    ctx.beginPath(); ctx.moveTo(xi, yi); ctx.lineTo(xi, yg); ctx.stroke();
-  });
-
-  // path line
-  if (rows.length) {
-    ctx.strokeStyle = 'rgba(34,197,94,0.9)';
-    ctx.lineWidth = 2*DPR;
-    ctx.beginPath();
-    rows.forEach((r,i) => { const xi=x(i), yi=y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi); });
-    ctx.stroke();
-  }
-
-  // points
-  rows.forEach((r,i) => {
-    const xi=x(i), yi=y(r.timeSec);
-    const good = r.timeSec <= goalSec;
-    ctx.fillStyle = good ? 'rgba(34,197,94,1)' : 'rgba(239,68,68,1)';
-    ctx.beginPath(); ctx.arc(xi, yi, 4*DPR, 0, Math.PI*2); ctx.fill();
-  });
+function drawChart(rows, goalSec){ const ctx=chartCanvas.getContext('2d'); const DPR= devicePixelRatio||1; const w = chartCanvas.clientWidth*DPR; const h = chartCanvas.clientHeight*DPR; if(chartCanvas.width!==w) chartCanvas.width=w; if(chartCanvas.height!==h) chartCanvas.height=h; ctx.clearRect(0,0,w,h);
+  const padL=48, padR=12, padT=12, padB=36; const plotW=w-padL-padR, plotH=h-padT-padB; const times=rows.map(r=>r.timeSec); const minT=rows.length?Math.min(...times, goalSec):8*60; const maxT=rows.length?Math.max(...times, goalSec):14*60; const yMin=Math.max(0, Math.floor((minT-30)/30)*30); const yMax=Math.ceil((maxT+30)/30)*30;
+  const x = i => padL + (rows.length<=1? plotW/2 : i*(plotW/(rows.length-1))); const y = s => padT + (1 - (s - yMin)/(yMax-yMin)) * plotH;
+  ctx.strokeStyle='rgba(255,255,255,0.14)'; ctx.lineWidth=1*DPR; ctx.beginPath(); for(let s=yMin; s<=yMax; s+=30){ const yy=y(s); ctx.moveTo(padL,yy); ctx.lineTo(w-padR,yy);} ctx.stroke();
+  ctx.fillStyle='rgba(229,231,235,0.9)'; ctx.font=`${11*DPR}px system-ui, sans-serif`; ctx.textAlign='right'; ctx.textBaseline='middle'; for(let s=yMin; s<=yMax; s+=60){ ctx.fillText(fmtSec(s), padL-6, y(s)); }
+  ctx.textAlign='center'; ctx.textBaseline='top'; const step=Math.max(1, Math.floor(rows.length/6)); rows.forEach((r,i)=>{ if(i%step===0||i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), x(i), h-padB+6); }});
+  ctx.strokeStyle='rgba(56,189,248,0.95)'; ctx.setLineDash([6*DPR,6*DPR]); ctx.beginPath(); ctx.moveTo(padL,y(goalSec)); ctx.lineTo(w-padR,y(goalSec)); ctx.stroke(); ctx.setLineDash([]);
+  rows.forEach((r,i)=>{ const xi=x(i), yi=y(r.timeSec), yg=y(goalSec); ctx.strokeStyle = r.timeSec<=goalSec? 'rgba(34,197,94,0.65)':'rgba(239,68,68,0.65)'; ctx.lineWidth=2*DPR; ctx.beginPath(); ctx.moveTo(xi,yi); ctx.lineTo(xi,yg); ctx.stroke(); });
+  if(rows.length){ ctx.strokeStyle='rgba(34,197,94,0.95)'; ctx.lineWidth=2*DPR; ctx.beginPath(); rows.forEach((r,i)=>{ const xi=x(i), yi=y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi);}); ctx.stroke(); }
+  rows.forEach((r,i)=>{ const xi=x(i), yi=y(r.timeSec); const good=r.timeSec<=goalSec; ctx.fillStyle=good? 'rgba(34,197,94,1)':'rgba(239,68,68,1)'; ctx.beginPath(); ctx.arc(xi,yi,3.8*DPR,0,Math.PI*2); ctx.fill(); });
 }
 
-/* ---------------- Render root ---------------- */
-function render() {
-  // show one view
-  const cur = Router.current();
-  Object.entries(views).forEach(([k,el]) => el.classList.toggle('hidden', k !== cur));
+/* ---------------- Render Root ---------------- */
+function render(){ const cur=Router.current(); Object.entries(views).forEach(([k,el])=> el.classList.toggle('hidden', k!==cur)); if(cur==='run'){ fillTrackSelects(); setRunTrackDefaults(); } else if(cur==='stats'){ fillTrackSelects(); renderStats(); } }
 
-  if (cur === 'run') {
-    fillTrackSelects();
-    setRunTrackDefaults();
-  } else if (cur === 'stats') {
-    fillTrackSelects();
-    renderStats();
-  }
-}
+document.getElementById('homeBtn').onclick=()=>Router.go('home');
+document.getElementById('runBtn').onclick =()=>Router.go('run');
+document.getElementById('statsBtn').onclick=()=>Router.go('stats');
 
-/* ---------------- Events ---------------- */
-trackSelect.addEventListener('change', setRunTrackDefaults);
-trackStatsSelect.addEventListener('change', renderStats);
+trackSelect?.addEventListener('change', setRunTrackDefaults);
+trackStatsSelect?.addEventListener('change', renderStats);
 
-timeInput.addEventListener('input', updatePacePreview);
+timeInput?.addEventListener('input', updatePacePreview);
 
-// initial
+// boot
 render();
+window.addEventListener('resize', ()=>{ if(Router.current()==='stats') renderStats(); });
 </script>
 </body>
 </html>
