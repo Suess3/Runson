@@ -4,12 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Runson</title>
-
-  <!-- Handwritten font for background watermark -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -27,7 +24,7 @@
 
     <!-- HOME -->
     <section id="view-home" class="panel" data-view="home">
-      <p class="muted" style="margin:0 0 8px">Data is stored automatically by default via Firebase.</p>
+      <p class="muted" style="margin:0 0 8px">Data is stored automatically via Firebase.</p>
       <details open>
         <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync</summary>
         <p class="muted" style="margin:8px 0">Hint: with the sync code <strong>“Run”</strong> the data is synced across devices.</p>
@@ -38,10 +35,12 @@
           <div id="cloudMsg" class="muted" style="padding-left:6px"></div>
         </div>
       </details>
-    </section>
 
-    <!-- Small hero image BELOW the card -->
-    <img class="home-hero" src="./js/home-hero.png" alt="Runner in the hills" />
+      <!-- Home image (added below sync box) -->
+      <div class="home-img-wrap">
+        <img src="js/home-hero.png" alt="Running illustration" class="home-img" />
+      </div>
+    </section>
 
     <!-- RUN -->
     <section id="view-run" class="panel hidden" data-view="run">
@@ -162,6 +161,6 @@
     </section>
   </div>
 
-  <script type="module" src="./js/main.js"></script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
