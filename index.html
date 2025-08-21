@@ -1,1 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Run Tracker</title>
 
+  <!-- Handwritten font for background watermark -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="app-header">
+      <h1>🏃‍♂️ Run Tracker</h1>
+      <nav class="nav">
+        <button class="btn" id="navHome">Home</button>
+        <button class="btn" id="navRun">Run</button>
+        <button class="btn" id="navStats">Stats</button>
+        <button class="btn" id="navTracks">Tracks</button>
+        <span id="syncChip" class="chip hidden" title="Connected to cloud">✓ Synced</span>
+      </nav>
+    </header>
+
+    <!-- HOME -->
+    <section id="view-home" class="panel" data-view="home">
+      <p class="muted" style="margin:0 0 8px">Data is stored locally by default. Enable cloud sync to access from all devices.</p>
+      <details open>
+        <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync (Firebase Firestore)</summary>
+        <p class="muted" style="margin:8px 0">Hint: you can use the sync code <strong>“Run”</strong> to get started quickly. Use the same code on all devices.</p>
+        <label for="syncCode">Sync code</label>
+        <input id="syncCode" placeholder="e.g. Run" />
+        <div class="row" style="margin-top:6px">
+          <button class="btn primary" id="connectCloudBtn">Connect & Sync</button>
+          <div id="cloudMsg" class="muted" style="padding-left:6px"></div>
+        </div>
+      </details>
+    </section>
+
+    <!-- RUN -->
+    <section id="view-run" class="panel hidden" data-view="run">
+      <div class="row">
+        <div class="grow">
+          <label for="trackSelect">Track</label>
+          <select id="trackSelect"></select>
+        </div>
+        <div style="width:120px">
+          <label for="distance">km</label>
+          <input id="distance" disabled>
+        </div>
+        <div style="width:140px">
+          <label for="attempts">logged</label>
+          <input id="attempts" disabled>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <label for="timeInput">Time (mm:ss or mm — also accepts 11:45 or 11.45)</label>
+          <input id="timeInput" placeholder="e.g. 11:45 or 11.45">
+        </div>
+        <div class="grow">
+          <label for="pace">Pace (min/km)</label>
+          <input id="pace" disabled>
+        </div>
+        <div style="width:170px">
+          <label for="dateInput">Date</label>
+          <input id="dateInput" type="date">
+        </div>
+      </div>
+      <label for="noteInput">Note</label>
+      <textarea id="noteInput" placeholder="optional"></textarea>
+
+      <div class="row" style="margin-top:6px">
+        <button class="btn primary" id="saveRunBtn">Save run</button>
+        <div id="saveMsg" class="muted" aria-live="polite" style="padding-left:6px"></div>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section id="view-stats" class="panel hidden" data-view="stats">
+      <div class="row">
+        <div class="grow">
+          <label for="trackStatsSelect">Track</label>
+          <select id="trackStatsSelect"></select>
+        </div>
+        <div class="grow">
+          <label for="goalInput">Goal (mm:ss)</label>
+          <div class="row">
+            <input id="goalInput" placeholder="09:00" class="num"/>
+            <button class="btn" id="saveGoalBtn">Save goal</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpis" style="margin:8px 0 10px">
+        <div class="kpi"><div class="label">Best</div><div class="value num" id="bestTime">–</div></div>
+        <div class="kpi"><div class="label">Average</div><div class="value num" id="avgTime">–</div></div>
+        <div class="kpi"><div class="label">Last</div><div class="value num" id="lastTime">–</div></div>
+        <div class="kpi"><div class="label">Gap to goal</div><div class="value num" id="gapToGoal">–</div></div>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="chart" aria-label="Progress chart"></canvas>
+        <div id="chartTip"></div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:10px">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-date">Date</th>
+              <th class="col-time">Time</th>
+              <th class="col-pace">Pace</th>
+              <th class="col-delta">Δ goal</th>
+              <th class="col-note">Note</th>
+              <th class="col-act">Delete</th>
+            </tr>
+          </thead>
+          <tbody id="runsTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TRACKS -->
+    <section id="view-tracks" class="panel hidden" data-view="tracks">
+      <h2 style="margin:0 0 8px">Tracks</h2>
+      <div class="row">
+        <div class="grow">
+          <label for="newTrackName">Name</label>
+          <input id="newTrackName" placeholder="e.g. Prater Runde">
+        </div>
+        <div style="width:160px">
+          <label for="newTrackKm">Distance (km)</label>
+          <input id="newTrackKm" placeholder="e.g. 5.00">
+        </div>
+      </div>
+      <div class="row" style="margin-top:6px">
+        <button class="btn primary" id="addTrackBtn">Add track</button>
+        <div id="trackMsg" class="muted" style="padding-left:6px"></div>
+      </div>
+
+      <div class="table-wrap" style="margin-top:10px">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th class="num">km</th>
+              <th class="num">runs</th>
+              <th class="col-act">Delete</th>
+            </tr>
+          </thead>
+          <tbody id="tracksTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- If you serve /public as your web root, use "../js/main.js". If you serve repo root, use "js/main.js". -->
+  <script type="module" src="../js/main.js"></script>
+</body>
+</html>
