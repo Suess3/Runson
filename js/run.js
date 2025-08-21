@@ -1,58 +1,63 @@
-// Run form (pace preview, save run)
 import { $, on, state, update, ymd, parseTimeToSec, paceMinPerKm } from './ui.js';
 import { pushToCloud } from './menu.js';
 
-let els = {};
-
 export function initRunView(sectionEl){
-  els = {
-    trackSelect: $('#trackSelect', sectionEl),
-    distance:    $('#distance', sectionEl),
-    attempts:    $('#attempts', sectionEl),
-    timeInput:   $('#timeInput', sectionEl),
-    pace:        $('#pace', sectionEl),
-    dateInput:   $('#dateInput', sectionEl),
-    noteInput:   $('#noteInput', sectionEl),
-    saveBtn:     $('#saveRunBtn', sectionEl),
-    saveMsg:     $('#saveMsg', sectionEl),
+  const els = {
+    track:    $('#trackSelect', sectionEl),
+    distance: $('#distance', sectionEl),
+    attempts: $('#attempts', sectionEl),
+    time:     $('#timeInput', sectionEl),
+    pace:     $('#pace', sectionEl),
+    date:     $('#dateInput', sectionEl),
+    note:     $('#noteInput', sectionEl),
+    save:     $('#saveRunBtn', sectionEl),
+    saveMsg:  $('#saveMsg', sectionEl),
   };
 
-  on(els.timeInput, 'input', updatePacePreview);
-  on(els.trackSelect, 'change', setDefaults);
-  on(els.saveBtn, 'click', onSave);
+  on(els.time, 'input', ()=>{
+    const sec = parseTimeToSec(els.time.value);
+    const km  = Number(els.distance.value) || 0;
+    els.pace.value = isFinite(sec) ? paceMinPerKm(sec, km) : '';
+  });
+
+  on(els.save, 'click', ()=>{
+    const trackId = els.track.value;
+    if(!trackId){ els.saveMsg.textContent='Pick a track first.'; return; }
+
+    const sec = parseTimeToSec(els.time.value);
+    if(!isFinite(sec)){ els.saveMsg.textContent='Enter time as mm:ss'; return; }
+
+    const date = els.date.value || ymd(new Date());
+    const note = els.note.value.trim();
+
+    update(s=>{
+      s.runs.push({ id: crypto.randomUUID(), trackId, sec, date, note });
+    });
+    pushToCloud({type:'run', trackId, sec, date, note});
+
+    els.saveMsg.textContent='Saved.';
+    els.attempts.value = String((state.runs.filter(r=>r.trackId===trackId)).length);
+    els.time.value=''; els.note.value='';
+  });
+
+  // populate track options
+  renderRunView();
 }
 
 export function renderRunView(){
-  els.trackSelect.innerHTML = state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-  if(!state.tracks.find(t=>t.id===els.trackSelect.value) && state.tracks[0]){
-    els.trackSelect.value = state.tracks[0].id;
+  const sel  = $('#trackSelect');
+  const dist = $('#distance');
+  const att  = $('#attempts');
+
+  sel.innerHTML = state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const current = state.tracks[0];
+  if(current){
+    sel.value = current.id;
+    dist.value = String(current.km);
+    att.value = String(state.runs.filter(r=>r.trackId===current.id).length);
+    $('#dateInput').value = ymd(new Date());
+  }else{
+    sel.innerHTML = '<option value="">Add a track first</option>';
+    dist.value = ''; att.value='';
   }
-  setDefaults();
-}
-
-function setDefaults(){
-  const t=state.tracks.find(x=>x.id===els.trackSelect.value);
-  if(!t) return;
-  els.distance.value=t.distanceKm;
-  els.attempts.value=state.runs.filter(r=>r.trackId===t.id).length;
-  els.dateInput.value = ymd(new Date());
-  updatePacePreview();
-}
-
-function updatePacePreview(){
-  const t=state.tracks.find(x=>x.id===els.trackSelect.value);
-  const sec=parseTimeToSec(els.timeInput.value);
-  els.pace.value=(t && isFinite(sec)) ? paceMinPerKm(sec, t.distanceKm) : '–';
-}
-
-async function onSave(){
-  const t=state.tracks.find(x=>x.id===els.trackSelect.value);
-  const sec=parseTimeToSec(els.timeInput.value);
-  if(!t){ els.saveMsg.textContent='Select a track'; return; }
-  if(!isFinite(sec)||sec<=0){ els.saveMsg.textContent='Enter a valid time (e.g. 11:45 or 11.45)'; return; }
-  const when = els.dateInput.value ? new Date(els.dateInput.value+'T12:00:00') : new Date();
-  const entry={ id:(crypto.randomUUID?.()||Date.now()+''), trackId:t.id, dateISO:when.toISOString(), timeSec:Math.round(sec), note:(els.noteInput.value||'').trim() };
-  update(s=>{ s.runs.push(entry); });
-  await pushToCloud();
-  els.timeInput.value=''; els.noteInput.value=''; setDefaults(); els.saveMsg.textContent='Saved ✓'; setTimeout(()=> els.saveMsg.textContent='', 1500);
 }
