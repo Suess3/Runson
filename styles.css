@@ -210,6 +210,6 @@ tbody tr:hover{ background:#fafcff; }
 .home-img{
   max-width: 200px; /* slightly smaller */
   width: 50%;
-  border-radius: 12px;
+  border-radius: 22px;
   opacity: 0.95;
 }
