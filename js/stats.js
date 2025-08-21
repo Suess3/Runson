@@ -16,7 +16,7 @@ export function initStatsView(sectionEl){
     lastTime:      $('#lastTime', sectionEl),
     gapToGoal:     $('#gapToGoal', sectionEl),
     chart:         $('#chart', sectionEl),
-    chartTip:      $('#chartTip', sectionEl.closest('.wrap') || document),
+    chartTip:      $('#chartTip'),
     runsTableBody: $('#runsTable', sectionEl)
   };
 
@@ -28,7 +28,6 @@ export function initStatsView(sectionEl){
 }
 
 export function renderStatsView(){
-  // Fill tracks
   els.trackSelect.innerHTML = state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   if(!state.tracks.find(t=>t.id===els.trackSelect.value) && state.tracks[0]){
     els.trackSelect.value = state.tracks[0].id;
@@ -58,7 +57,7 @@ async function onDeleteRun(e){
 }
 
 function renderStats(){
-  const t = state.tracks.find(x=>x.id===els.trackSelect.value);
+  const t=state.tracks.find(x=>x.id===els.trackSelect.value);
   if(!t){
     els.runsTableBody.innerHTML='';
     els.bestTime.textContent=els.avgTime.textContent=els.lastTime.textContent=els.gapToGoal.textContent='–';
@@ -68,7 +67,6 @@ function renderStats(){
   els.goalInput.value = fmtSec(goal);
 
   const rows = state.runs.filter(r=>r.trackId===t.id).sort((a,b)=> new Date(a.dateISO)-new Date(b.dateISO));
-
   if(!rows.length){
     els.bestTime.textContent=els.avgTime.textContent=els.lastTime.textContent=els.gapToGoal.textContent='–';
     els.runsTableBody.innerHTML=''; drawChart([], goal); return;
@@ -135,22 +133,19 @@ function drawChart(rows, goalSec, km=1){
   const pw=w-padL-padR, ph=h-padT-padB;
   const Y=s => padT + (1 - (s - y0)/(y1 - y0)) * ph;
 
-  // Time-based X mapping (distance == days between points)
-  let X;
+  // Time-based X mapping
   let xs = [];
   if(rows.length<=1){
-    X = _i => padL + pw/2;
-    xs = rows.map((_,i)=>X(i));
+    xs = [padL + (w-padL-padR)/2];
   }else{
     const t0 = new Date(rows[0].dateISO).getTime();
     const t1 = new Date(rows[rows.length-1].dateISO).getTime();
     const range = Math.max(1, t1 - t0);
-    X = (i) => {
-      const ti = new Date(rows[i].dateISO).getTime();
+    xs = rows.map(r=>{
+      const ti = new Date(r.dateISO).getTime();
       const frac = (ti - t0) / range;
-      return padL + frac * pw;
-    };
-    xs = rows.map((_,i)=>X(i));
+      return padL + frac * (w-padL-padR);
+    });
   }
 
   // Grid
@@ -168,10 +163,10 @@ function drawChart(rows, goalSec, km=1){
   ctx.textAlign='right'; ctx.textBaseline='middle';
   for(let s=y0; s<=y1; s+=60){ ctx.fillText(fmtSec(s), padL - 6*DPR, Y(s)); }
 
-  // X labels: switch to months if overlap
+  // X labels: smart (dates vs months)
   let minDx = Infinity;
   for(let i=1;i<xs.length;i++) minDx = Math.min(minDx, xs[i]-xs[i-1]);
-  const overlap = (minDx / DPR) < 60; // px threshold
+  const overlap = (minDx / DPR) < 60;
   ctx.textAlign='center'; ctx.textBaseline='top'; ctx.fillStyle='#333';
 
   if(!overlap){
