@@ -1,6 +1,6 @@
 :root{
   --bg:#b5e6f5;
-  --ink:#111; --muted:#555; --line:#cfcfcf; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
+  --ink:#111; --muted:#555; --line:#a8a8a8; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
   --wrap:max(320px, min(760px, 94vw));
 }
 
@@ -75,6 +75,13 @@ th{background:#fafafa}
 /* KPIs + chip */
 .kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px}
 .kpi{border:1px solid var(--line); border-radius:6px; padding:10px; background:#fff}
+
+/* Gap-to-goal KPI coloring */
+.kpi.good{ background:#e8f7ec; border-color:#9fd0ab; }
+.kpi.good .value{ color:var(--ok); }
+.kpi.bad{ background:#fde8ea; border-color:#e7b0b7; }
+.kpi.bad .value{ color:var(--bad); }
+
 .kpi .label{color:var(--muted); font-size:12px}
 .kpi .value{font-weight:800; font-size:18px}
 
