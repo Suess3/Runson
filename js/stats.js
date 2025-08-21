@@ -1,5 +1,5 @@
 // js/stats.js
-// Stats view: KPIs, table, canvas chart, and goal-progres battery
+// Stats view: KPIs, table, canvas chart, and goal-progres battery!
 
 import {
   $, on, state, update,
