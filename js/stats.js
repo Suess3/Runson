@@ -13,7 +13,7 @@ export function initStatsView(sectionEl){
     runsTableBody: $('#runsTable', sectionEl)
   };
 
-  // NEW: react to track changes
+  // 🔧 react to dropdown changes (switch KPI/table/chart to chosen track)
   on(els.trackSelect, 'change', () => {
     els.chartTip.style.display = 'none';
     renderStats();
@@ -27,15 +27,15 @@ export function initStatsView(sectionEl){
 }
 
 export function renderStatsView(){
-  // Preserve current selection across re-renders (e.g. cloud sync, resize)
+  // 🔧 preserve current selection across any re-render (e.g. resize, cloud sync)
   const previouslySelected = els.trackSelect?.value || '';
 
-  // Rebuild options
+  // rebuild options
   els.trackSelect.innerHTML = state.tracks
     .map(t => `<option value="${t.id}">${t.name}</option>`)
     .join('');
 
-  // Restore selection if still valid, otherwise default to first track
+  // restore selection if still valid, otherwise default to first track
   const keep =
     previouslySelected && state.tracks.some(t => t.id === previouslySelected)
       ? previouslySelected
