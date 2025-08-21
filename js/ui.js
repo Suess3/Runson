@@ -51,6 +51,27 @@ export function parseTimeToSec(input){
   return isNaN(num) ? NaN : num*60;
 }
 
+// ---------- Goal projection helpers (Riegel) ----------
+export const GOAL_9K_SEC = 38*60;   // 38:00
+export const GOAL_9K_KM  = 9;       // 9 km
+export const RIEGEL_K_DEFAULT = 1.06;
+
+/** Project time from d1->d2 via Riegel (T2 = T1 * (D2/D1)^k) */
+export function riegelProject(t1_sec, d1_km, d2_km, k = RIEGEL_K_DEFAULT){
+  return t1_sec * Math.pow(d2_km / d1_km, k);
+}
+
+/** For a short distance dShort, what time projects to the global goal of 9k/38:00? */
+export function suggestedShortTimeForGoal(
+  dShortKm,
+  goalSec = GOAL_9K_SEC,
+  goalKm  = GOAL_9K_KM,
+  k       = RIEGEL_K_DEFAULT
+){
+  if(!(dShortKm > 0) || !(goalSec > 0) || !(goalKm > 0)) return NaN;
+  return goalSec / Math.pow(goalKm / dShortKm, k);
+}
+
 // ---------- Misc ----------
 export function slugify(str){
   const base = String(str).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'track';
