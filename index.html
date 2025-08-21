@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Runson</title>
 
+  <!-- Optional fancy font for background watermark (kept from your version) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
@@ -16,10 +17,10 @@
     <header class="app-header">
       <h1>🏃‍♂️ Runson</h1>
       <nav class="nav">
-        <button class="btn" id="navHome"  onclick="location.hash='#home'">Home</button>
-        <button class="btn" id="navRun"   onclick="location.hash='#run'">Run</button>
+        <button class="btn" id="navHome" onclick="location.hash='#home'">Home</button>
+        <button class="btn" id="navRun" onclick="location.hash='#run'">Run</button>
         <button class="btn" id="navStats" onclick="location.hash='#stats'">Stats</button>
-        <button class="btn" id="navTracks"onclick="location.hash='#tracks'">Tracks</button>
+        <button class="btn" id="navTracks" onclick="location.hash='#tracks'">Tracks</button>
         <span id="syncChip" class="chip hidden" title="Connected to cloud">✓ Synced</span>
       </nav>
     </header>
@@ -43,7 +44,7 @@
         </div>
       </details>
 
-      <!-- Centered, smaller image — put file at js/home-hero.png -->
+      <!-- Your image (put file at js/home-hero.png) -->
       <figure class="home-art">
         <img src="./js/home-hero.png" alt="Runner on a forest trail at sunrise" loading="lazy">
       </figure>
@@ -110,7 +111,7 @@
         <div class="kpi"><div class="label">Best</div><div class="value num" id="bestTime">–</div></div>
         <div class="kpi"><div class="label">Average</div><div class="value num" id="avgTime">–</div></div>
         <div class="kpi"><div class="label">Last</div><div class="value num" id="lastTime">–</div></div>
-        <div class="kpi" id="kpiGap"><div class="label">Gap to goal</div><div class="value num" id="gapToGoal">–</div></div>
+        <div class="kpi"><div class="label">Gap to goal</div><div class="value num" id="gapToGoal">–</div></div>
       </div>
 
       <div class="chart-wrap">
@@ -118,7 +119,7 @@
         <div id="chartTip"></div>
       </div>
 
-      <!-- Progress battery gets injected by JS below the chart -->
+      <!-- The progress battery is injected by JS below the chart -->
 
       <div class="table-wrap" style="margin-top:10px">
         <table>
