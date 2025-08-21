@@ -337,4 +337,84 @@ function ensureProgressDom(){
     </div>
     <div class="battery" role="img" aria-label="Goal progress battery">
       <div class="cells" id="progressCells">
-        ${Array.from({length:10},(_,i)=>`<div class="cell" d_
+        ${Array.from({length:10},(_,i)=>`<div class="cell" data-i="${i}"></div>`).join('')}
+      </div>
+      <div class="cap"></div>
+    </div>
+    <div class="progress-meta" id="progressMeta"></div>
+  `;
+  // place beneath chart, above runs table
+  els.chart.insertAdjacentElement('afterend', card);
+
+  els.progressWrap = card;
+  els.progressCells = card.querySelector('#progressCells');
+  els.progressPct   = card.querySelector('#progressPct');
+  els.progressMeta  = card.querySelector('#progressMeta');
+}
+
+function clearCells(nodes){
+  for(const n of nodes){ n.classList.remove('filled'); n.style.backgroundColor='transparent'; n.style.borderColor='var(--line)'; }
+}
+
+// ---------- Chart interactions ----------
+function onChartHover(ev){
+  if(!points.length) return;
+  const rect = els.chart.getBoundingClientRect();
+  const mx = ev.clientX - rect.left;
+  // const my = ev.clientY - rect.top; // not needed
+
+  // nearest by x
+  let best = null, bestDx = Infinity;
+  for(const p of points){
+    const dx = Math.abs(p.x - mx);
+    if(dx < bestDx){ bestDx = dx; best = p; }
+  }
+  if(!best) { els.chartTip.style.display='none'; return; }
+
+  els.chartTip.style.display = 'block';
+  els.chartTip.innerHTML = `
+    <div><strong>${fmtDate(best.run.dateISO)}</strong></div>
+    <div>Time: <span class="num">${fmtSec(best.run.timeSec)}</span></div>
+  `;
+  els.chartTip.style.left = `${best.x}px`;
+  els.chartTip.style.top  = `${best.y}px`;
+}
+
+function onChartClick(){
+  els.chartTip.style.display = 'none';
+}
+
+// ---------- Helpers ----------
+function currentTrackId(){ return els.trackSelect?.value || ''; }
+
+function parseGoal(s){
+  const sec = parseTimeToSec(String(s||'').trim());
+  return isFinite(sec) ? sec : NaN;
+}
+
+function monthChanges(runs){
+  if(!runs.length) return [];
+  const out = [];
+  let prevM = -1, prevY = -1;
+  runs.forEach((r,i)=>{
+    const d = new Date(r.dateISO);
+    const m = d.getMonth(), y = d.getFullYear();
+    if(m !== prevM || y !== prevY){
+      out.push({ i, date: d });
+      prevM = m; prevY = y;
+    }
+  });
+  return out;
+}
+
+function escapeHtml(s){
+  return String(s)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;');
+}
+
+function cssVar(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
