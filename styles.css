@@ -1,133 +1,27 @@
-:root{
-  --bg:#b5e6f5;
-  --ink:#111;
-  --muted:#555;
-  --line:#a8a8a8; /* slightly darker guidess */
-  --accent:#0b57d0;
-  --ok:#147a0a;
-  --bad:#b00020;
-  --wrap:max(320px, min(760px, 94vw));
-}
-
-/* base */
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  font:15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color:var(--ink);
-  background:var(--bg);
-}
-
-/* layout */
-.wrap{width:var(--wrap); margin:16px auto 24px;}
-.app-header{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
-.app-header h1{margin:0; font-size:28px}
-.nav .btn{margin-right:6px}
-
-/* buttons */
-.btn{
-  appearance:none;
-  border:1px solid var(--line);
-  background:#fff;
-  color:#000;
-  padding:8px 10px;
-  border-radius:8px;
-  cursor:pointer;
-}
-.btn:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
-.btn:active{transform:translateY(1px)}
-.btn.primary{background:#eef3ff; border-color:#c7d3ff; color:var(--accent)}
-.btn.danger{background:#ffecec; border-color:#f2b8b5; color:var(--bad)}
-.btn.sm{padding:4px 8px; font-size:13px}
-
-/* info chip */
-.chip{
-  margin-left:8px;
-  align-self:center;
-  padding:4px 8px;
-  border-radius:999px;
-  border:1px solid #9fd0ab;
-  background:#eaf7ea;
-  color:var(--ok);
-  font-weight:700;
-  font-size:12px;
-}
-
-/* panels & form */
-.panel{border:1px solid var(--line); border-radius:8px; padding:12px; background:#fff; margin-bottom:12px}
-label{display:block; margin:8px 0 4px; color:var(--muted); font-weight:600}
-input, select, textarea{
-  width:100%;
-  padding:8px 10px;
-  border:1px solid var(--line);
-  border-radius:6px;
-  background:#fff;
-  color:#000;
-}
-textarea{min-height:80px; resize:vertical}
-.row{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap}
-.grow{flex:1 1 160px}
-.muted{color:var(--muted)}
-.hidden{display:none !important}
-
-/* details (cloud sync) */
-details{border:1px solid var(--line); border-radius:8px; padding:8px; background:#fff; margin-bottom:10px}
-details>summary{cursor:pointer; font-weight:700; margin:-8px -8px 8px; padding:8px; list-style:none; border-bottom:1px dashed var(--line)}
-details[open]>summary{border-bottom-style:solid}
-
-/* table */
-.table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:6px; background:#fff}
-table{width:100%; border-collapse:collapse; table-layout:auto; background:#fff}
-th, td{border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top}
-th{background:#fafafa}
-.num{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace; font-variant-numeric: tabular-nums; white-space:nowrap}
-.col-date{min-width:9ch}
-.col-time{min-width:7ch}
-.col-pace{min-width:8ch}
-.col-delta{min-width:8ch}
-.col-note{min-width:18ch}
-.col-act{min-width:8ch}
-
-/* chart + tooltip */
-.chart-wrap{position:relative}
-#chart{width:100%; height:260px; border:1px solid var(--line); border-radius:6px; background:#fff}
-#chartTip{
-  position:absolute; left:0; top:0; transform:translate(-50%,-50%);
-  background:rgba(17,17,17,.92); color:#fff;
-  padding:6px 8px; border-radius:6px; font-size:12px; line-height:1.35;
-  pointer-events:none; white-space:nowrap;
-  box-shadow:0 6px 18px rgba(0,0,0,.22); display:none;
-}
-
-/* KPIs */
-.kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px}
-.kpi{border:1px solid var(--line); border-radius:6px; padding:10px; background:#fff}
-.kpi .label{color:var(--muted); font-size:12px}
-.kpi .value{font-weight:800; font-size:18px}
-/* gap-to-goal coloring */
-.kpi.good{ background:#e8f7ec; border-color:#9fd0ab; }
-.kpi.good .value{ color:var(--ok); }
-.kpi.bad{ background:#fde8ea; border-color:#e7b0b7; }
-.kpi.bad .value{ color:var(--bad); }
-
 /* --- Goal progress battery --- */
 .progress-card{
   margin: 14px 0 10px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff9;
+  background: #fff9; /* slight translucent white */
   backdrop-filter: blur(2px);
 }
 .progress-card.disabled{ opacity: 0.7; }
+
 .progress-head{
   display:flex; align-items:center; justify-content:space-between;
   margin-bottom: 8px;
 }
 .progress-head .title{ font-weight:600; }
 .progress-head .pct{ font-variant-numeric: tabular-nums; font-weight:700; }
-.battery{ position: relative; display: flex; align-items: center; gap: 10px; }
+
+.battery{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .battery .cells{
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -146,25 +40,23 @@ th{background:#fafafa}
   opacity: .28;
   transition: opacity .3s ease, transform .2s ease;
 }
-.battery .cell.filled{ opacity: 1; transform: translateY(-1px); }
-.battery .cap{
-  width: 10px; height: 18px;
-  border: 2px solid var(--line); border-left: none;
-  border-radius: 0 6px 6px 0; background: #fff;
+.battery .cell.filled{
+  opacity: 1;
+  transform: translateY(-1px);
 }
+.battery .cap{
+  width: 10px;
+  height: 18px;
+  border: 2px solid var(--line);
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background: #fff;
+}
+
 .progress-meta{
   display:flex; flex-wrap:wrap; gap:10px 16px;
-  margin-top: 8px; color: var(--muted); font-size: .95rem;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: .95rem;
 }
 .progress-meta b{ color: var(--ink); }
-
-/* home hero image under the Home panel box */
-#view-home::after{
-  content:"";
-  display:block;
-  height: 240px;
-  margin-top: 12px;
-  border-radius: 12px;
-  background: center / cover no-repeat url("./runningpicture.png");
-  box-shadow: 0 8px 24px rgba(0,0,0,.18);
-}
