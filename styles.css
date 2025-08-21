@@ -1,4 +1,130 @@
-/* --- Goal progress battery (if not already present) --- */
+/* ===== Design tokens ===== */
+:root{
+  --bg: #f6fafc;
+  --surface: #ffffff;
+  --ink: #111;
+  --muted: #6b7280;
+  --line: #d7dde3;
+  --accent: #0b57d0;
+  --danger: #c0392b;
+  --ok: #0a7d35;
+}
+
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color:var(--ink);
+  background: linear-gradient(180deg,#f9fcff 0%, #eef6fb 100%);
+}
+
+.wrap{ max-width:980px; margin:0 auto; padding:16px; }
+
+/* ===== App header ===== */
+.app-header{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; margin-bottom:14px;
+}
+.app-header h1{ margin:0; font-size:1.5rem; }
+.nav{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+/* ===== Buttons & chips ===== */
+.btn{
+  appearance:none; border:none;
+  background:#fff; color:var(--ink);
+  border:1px solid var(--line);
+  padding:8px 12px; border-radius:10px; cursor:pointer;
+  transition:transform .02s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn:hover{ box-shadow:0 2px 10px rgba(0,0,0,.06); }
+.btn:active{ transform:translateY(1px); }
+.btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.danger{ background:#fff1f0; color:#b12216; border-color:#f6c9c5; }
+.btn.sm{ padding:6px 9px; border-radius:8px; font-size:.9rem; }
+
+.chip{
+  border:1px solid var(--line);
+  padding:6px 10px; border-radius:999px; background:#eef6ff; color:#0d3b99;
+}
+.hidden{ display:none !important; }
+
+/* ===== Panels & layout ===== */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.04);
+}
+.row{ display:flex; gap:10px; }
+.grow{ flex:1 1 auto; }
+
+label{ display:block; font-weight:600; margin:2px 0 4px; }
+input, select, textarea{
+  width:100%; padding:9px 10px; border-radius:10px;
+  border:1px solid var(--line); background:#fff; color:var(--ink);
+  font: inherit;
+}
+textarea{ min-height:70px; resize:vertical; }
+
+/* Number alignment helpers */
+.num{ font-variant-numeric: tabular-nums; }
+
+/* Muted/help text */
+.muted{ color:var(--muted); }
+
+/* ===== KPIs ===== */
+.kpis{
+  display:grid; grid-template-columns: repeat(4, minmax(0,1fr));
+  gap:10px;
+}
+.kpi{
+  border:1px solid var(--line); border-radius:12px; padding:10px;
+  background:#fff;
+}
+.kpi .label{ color:var(--muted); font-size:.92rem; margin-bottom:3px; }
+.kpi .value{
+  font-weight:700; padding:6px 10px; border-radius:8px;
+  display:inline-block; background:#f3f5f7; border:1px solid var(--line);
+}
+/* Fill the “Gap to goal” box */
+.kpi.good .value{ background:#e8f7ee; border-color:#bfe7cf; color:var(--ok); }
+.kpi.bad  .value{ background:#fdecec; border-color:#f7c8c8; color:#b12216; }
+
+/* ===== Chart ===== */
+.chart-wrap{ position:relative; }
+#chart{ width:100%; height:280px; display:block; }
+#chartTip{
+  position:absolute; transform:translate(8px, -34px);
+  background:#111; color:#fff; font-size:.9rem;
+  padding:6px 8px; border-radius:8px; pointer-events:none; display:none;
+  box-shadow:0 8px 20px rgba(0,0,0,.2); white-space:nowrap;
+}
+
+/* ===== Tables ===== */
+.table-wrap{ overflow:auto; }
+table{ width:100%; border-collapse:separate; border-spacing:0; }
+th, td{ border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; }
+thead th{ position:sticky; top:0; background:#f8fbff; z-index:1; }
+tbody tr:hover{ background:#fafcfe; }
+.col-date{ width:112px; }
+.col-time, .col-pace, .col-delta{ width:90px; }
+.col-note{ min-width:160px; }
+.col-act{ width:92px; }
+
+/* ===== Home hero image under the box ===== */
+#view-home::after{
+  content:"";
+  display:block;
+  height:240px;
+  margin-top:12px;
+  border-radius:12px;
+  background: center / cover no-repeat url("./home-hero.png");
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+}
+
+/* ===== Progress battery (your previous add-on, kept) ===== */
 .progress-card{
   margin: 14px 0 10px;
   padding: 12px;
@@ -46,16 +172,3 @@
   margin-top: 8px; color: var(--muted); font-size: .95rem;
 }
 .progress-meta b{ color: var(--ink); }
-
-/* --- Home hero image under the box, inside the Home panel --- */
-#view-home::after{
-  content:"";
-  display:block;
-  height: 240px;               /* adjust if you want it taller/shorter */
-  margin-top: 12px;
-  border-radius: 12px;
-  background:
-    center / cover no-repeat
-    url("./Screenshot%202025-08-21%20at%2016.33.22.png");
-  box-shadow: 0 8px 24px rgba(0,0,0,.18);
-}
