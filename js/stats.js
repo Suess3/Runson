@@ -1,5 +1,5 @@
 // js/stats.js
-// Stats view: KPIs, table, and canvas chart (per-track)
+// Stats view: KPIs, table, canvas chart, and goal-progress battery
 
 import {
   $, on, state, update,
@@ -25,6 +25,11 @@ export function initStatsView(sectionEl){
     chart:         $('#chart', sectionEl),
     chartTip:      $('#chartTip'),
     runsTableBody: $('#runsTable', sectionEl),
+    // created lazily:
+    progressWrap:  null,
+    progressCells: null,
+    progressPct:   null,
+    progressMeta:  null,
   };
 
   on(els.trackSelect, 'change', () => { els.chartTip.style.display='none'; renderStats(); });
@@ -70,16 +75,16 @@ function onDeleteRun(e){
 function renderStats(){
   const id = currentTrackId();
   const track = state.tracks.find(t=>t.id===id);
-  const goalSec = state.goals[id];
+  const goalSecStored = state.goals[id];
 
-  // runs for selected track, sorted by date
+  // runs for selected track, sorted by date (ascending)
   const runs = state.runs
     .filter(r=>r.trackId===id)
     .slice()
     .sort((a,b)=> new Date(a.dateISO) - new Date(b.dateISO));
 
   // Fill goal input
-  els.goalInput.value = isFinite(goalSec) ? fmtSec(goalSec) : '';
+  els.goalInput.value = isFinite(goalSecStored) ? fmtSec(goalSecStored) : '';
 
   // KPIs
   let last = NaN;
@@ -96,18 +101,28 @@ function renderStats(){
     els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = '–';
   }
 
-  // Gap to goal text + color chip on the KPI tile
+  // Gap to goal text + color on KPI tile
   const gapBox = els.gapToGoal.closest('.kpi');
   gapBox.classList.remove('good','bad');
-  if(isFinite(goalSec) && runs.length){
-    const diff = last - goalSec;
+  if(isFinite(goalSecStored) && runs.length){
+    const diff = last - goalSecStored;
     els.gapToGoal.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
-    gapBox.classList.add(diff <= 0 ? 'good' : 'bad'); // green if <= 0, red if >
+    gapBox.classList.add(diff <= 0 ? 'good' : 'bad');
   }else{
     els.gapToGoal.textContent = '–';
   }
 
-  // Table
+  // Chart (always includes goal line in scale)
+  drawChart(runs, track, goalSecStored);
+
+  // Progress battery (beneath chart)
+  renderProgressBattery(runs, goalSecStored);
+
+  // Table (below battery)
+  renderRunsTable(runs, track, goalSecStored);
+}
+
+function renderRunsTable(runs, track, goalSec){
   els.runsTableBody.innerHTML = runs.map(r=>{
     const pace = track ? paceMinPerKm(r.timeSec, track.distanceKm) : '–';
     const delta = isFinite(goalSec) ? (r.timeSec - goalSec >= 0 ? `+${fmtSec(r.timeSec-goalSec)}` : `-${fmtSec(goalSec-r.timeSec)}`) : '–';
@@ -120,11 +135,9 @@ function renderStats(){
       <td class="col-act"><button class="btn sm danger" data-del-run="${r.id}">Delete</button></td>
     </tr>`;
   }).join('') || `<tr><td colspan="6" class="muted">No runs yet.</td></tr>`;
-
-  // Chart
-  drawChart(runs, track, goalSec);
 }
 
+// ---------- Chart ----------
 function drawChart(runs, track, goalSec){
   const canvas = els.chart;
   const dpr = Math.max(1, Math.min(3, globalThis.devicePixelRatio||1));
@@ -142,23 +155,21 @@ function drawChart(runs, track, goalSec){
 
   points = [];
 
-  // Colors from CSS var --line (slightly darker grey)
   const lineColor = cssVar('--line', '#a8a8a8');
 
-  // Frame (use darker grey)
+  // Frame
   ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
   ctx.strokeRect(PADDING.l-0.5, PADDING.t-0.5, cssW - PADDING.l - PADDING.r + 1, cssH - PADDING.t - PADDING.b + 1);
 
-  // If no runs: still show goal line if available
   if(!runs.length){
+    // still show goal line if available
     if (isFinite(goalSec)) {
       const x0 = PADDING.l, x1 = cssW - PADDING.r;
       const y0 = cssH - PADDING.b, y1 = PADDING.t;
       const yMin = goalSec - 60, yMax = goalSec + 60; // ±1 min window
       const y = sec => y0 - (sec - yMin)/(yMax - yMin)*(y0 - y1);
 
-      // Goal line
       ctx.strokeStyle = '#0b57d0';
       ctx.setLineDash([4,4]);
       ctx.beginPath();
@@ -173,7 +184,7 @@ function drawChart(runs, track, goalSec){
     return;
   }
 
-  // Y scale (time in seconds) — include goal line so it is ALWAYS visible
+  // Y scale must include goal so it's always visible
   const rawMin = Math.min(...runs.map(r=>r.timeSec));
   const rawMax = Math.max(...runs.map(r=>r.timeSec));
   const baseMin = isFinite(goalSec) ? Math.min(rawMin, goalSec) : rawMin;
@@ -190,11 +201,11 @@ function drawChart(runs, track, goalSec){
     : x0 + (i/(runs.length-1))*(x1-x0);
   const y = sec => y0 - (sec - yMin)/(yMax - yMin)*(y0 - y1);
 
-  // Grid (a bit darker than before)
+  // Grid
   ctx.textAlign = 'right';
   ctx.fillStyle = '#555';
   ctx.strokeStyle = lineColor;
-  ctx.globalAlpha = 0.7; // darker feel than previous very light grey
+  ctx.globalAlpha = 0.7;
   for(let i=0;i<=4;i++){
     const v = yMin + i*(yMax-yMin)/4;
     const yy = y(v);
@@ -216,7 +227,7 @@ function drawChart(runs, track, goalSec){
   });
   ctx.globalAlpha = 1;
 
-  // Goal line (always included in scale above)
+  // Goal line
   if(isFinite(goalSec)){
     ctx.strokeStyle = '#0b57d0';
     ctx.setLineDash([4,4]);
@@ -246,6 +257,95 @@ function drawChart(runs, track, goalSec){
     ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
     ctx.fill();
   });
+}
+
+// ---------- Progress Battery ----------
+function renderProgressBattery(runs, goalSecStored){
+  ensureProgressDom();
+
+  // nothing to show if no runs
+  if(!runs.length){
+    els.progressWrap.classList.add('disabled');
+    els.progressPct.textContent = '–';
+    els.progressMeta.innerHTML = '<span>Run to set your baseline.</span>';
+    clearCells(els.progressCells.children);
+    return;
+  }
+  els.progressWrap.classList.remove('disabled');
+
+  // Baseline = time of the FIRST run for this track
+  const baselineSec = runs[0].timeSec;
+  const bestSec = Math.min(...runs.map(r=>r.timeSec));
+
+  // Use goal if valid and faster than baseline; otherwise derive a target (20% faster)
+  let goalSec = goalSecStored;
+  let derived = false;
+  if(!isFinite(goalSec) || goalSec >= baselineSec){
+    goalSec = Math.max(1, Math.round(baselineSec * 0.8));
+    derived = true;
+  }
+
+  const totalGain = Math.max(1, baselineSec - goalSec); // how many seconds to shave off
+  const achieved = Math.max(0, baselineSec - bestSec);
+  const frac = Math.max(0, Math.min(1, achieved / totalGain));
+  const pct = Math.round(frac * 100);
+
+  // fill cells
+  const cells = els.progressCells.children;
+  const fillCount = Math.max(1, Math.ceil(frac * 10)); // at least 1 filled on first run
+  for(let i=0;i<cells.length;i++){
+    const cell = cells[i];
+    // color by gradient red -> green across all 10 cells
+    const hue = Math.round((i / 9) * 120); // 0..120
+    const color = `hsl(${hue}deg 80% 45%)`;
+    cell.style.backgroundColor = color;
+    cell.style.borderColor = color;
+    cell.classList.toggle('filled', i < fillCount);
+  }
+
+  // header and legend
+  els.progressPct.textContent = `${pct}%`;
+  const remaining = Math.max(0, bestSec - goalSec);
+  const goalLabel = derived ? 'target' : 'goal';
+  els.progressMeta.innerHTML = `
+    <span>Baseline: <b class="num">${fmtSec(baselineSec)}</b></span>
+    <span>Best: <b class="num">${fmtSec(bestSec)}</b></span>
+    <span>${goalLabel[0].toUpperCase()+goalLabel.slice(1)}: <b class="num">${fmtSec(goalSec)}</b></span>
+    <span>Remaining: <b class="num">${remaining>0?('+'+fmtSec(remaining)):'0:00'}</b></span>
+  `;
+}
+
+function ensureProgressDom(){
+  if(els.progressWrap) return;
+
+  const card = document.createElement('div');
+  card.className = 'progress-card';
+  card.innerHTML = `
+    <div class="progress-head">
+      <div class="title">Goal progress</div>
+      <div class="pct"><span id="progressPct">0%</span></div>
+    </div>
+    <div class="battery" role="img" aria-label="Goal progress battery">
+      <div class="cells" id="progressCells">
+        ${Array.from({length:10},(_,i)=>`<div class="cell" data-i="${i}"></div>`).join('')}
+      </div>
+      <div class="cap"></div>
+    </div>
+    <div class="progress-meta" id="progressMeta">
+      <!-- Baseline / Best / Goal / Remaining -->
+    </div>
+  `;
+  // place beneath chart, above runs table
+  els.chart.insertAdjacentElement('afterend', card);
+
+  els.progressWrap = card;
+  els.progressCells = card.querySelector('#progressCells');
+  els.progressPct   = card.querySelector('#progressPct');
+  els.progressMeta  = card.querySelector('#progressMeta');
+}
+
+function clearCells(nodes){
+  for(const n of nodes){ n.classList.remove('filled'); n.style.backgroundColor='transparent'; n.style.borderColor='var(--line)'; }
 }
 
 // ---------- Chart interactions ----------
