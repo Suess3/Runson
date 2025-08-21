@@ -88,11 +88,11 @@ function renderStats(){
   els.goalInput.value = isFinite(goalSecStored) ? fmtSec(goalSecStored) : '';
 
   // KPIs
-  let last = NaN;
+  let best = NaN, avg = NaN, last = NaN;
   if(runs.length){
     const times = runs.map(r=>r.timeSec);
-    const best = Math.min(...times);
-    const avg  = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+    best = Math.min(...times);
+    avg  = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
     last = runs[runs.length-1].timeSec;
 
     els.bestTime.textContent = fmtSec(best);
@@ -102,13 +102,13 @@ function renderStats(){
     els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = '–';
   }
 
-  // Gap to goal text + color on KPI tile
+  // Gap to goal should compare to BEST time (not last)
   const gapBox = els.gapToGoal.closest('.kpi');
   gapBox.classList.remove('good','bad');
   if(isFinite(goalSecStored) && runs.length){
-    const diff = last - goalSecStored;
+    const diff = best - goalSecStored; // positive = still slower than goal
     els.gapToGoal.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
-    gapBox.classList.add(diff <= 0 ? 'good' : 'bad');
+    gapBox.classList.add(diff <= 0 ? 'good' : 'bad'); // green if best <= goal
   }else{
     els.gapToGoal.textContent = '–';
   }
@@ -361,7 +361,6 @@ function onChartHover(ev){
   if(!points.length) return;
   const rect = els.chart.getBoundingClientRect();
   const mx = ev.clientX - rect.left;
-  // const my = ev.clientY - rect.top; // not needed
 
   // nearest by x
   let best = null, bestDx = Infinity;
