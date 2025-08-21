@@ -27,10 +27,10 @@
 
     <!-- HOME -->
     <section id="view-home" class="panel" data-view="home">
-      <p class="muted" style="margin:0 0 8px">Data is stored locally by default. Enable cloud sync to access from all devices.</p>
+      <p class="muted" style="margin:0 0 8px">Data is stored automaticall by default via Firebase.</p>
       <details open>
         <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync</summary>
-        <p class="muted" style="margin:8px 0">Hint: you can use the sync code <strong>“Run”</strong> to get started quickly. Use the same code on all devices.</p>
+        <p class="muted" style="margin:8px 0">Hint: with the sync code <strong>“Run”</strong> the data is synced across devices.</p>
         <label for="syncCode">Sync code</label>
         <input id="syncCode" placeholder="e.g. Run" />
         <div class="row" style="margin-top:6px">
@@ -131,11 +131,11 @@
       <div class="row">
         <div class="grow">
           <label for="newTrackName">Name</label>
-          <input id="newTrackName" placeholder="e.g. Prater Runde">
+          <input id="newTrackName">
         </div>
         <div style="width:160px">
           <label for="newTrackKm">Distance (km)</label>
-          <input id="newTrackKm" placeholder="e.g. 5.00">
+          <input id="newTrackKm">
         </div>
       </div>
       <div class="row" style="margin-top:6px">
