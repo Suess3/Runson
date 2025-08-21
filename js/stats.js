@@ -9,8 +9,8 @@ import {
 import { pushToCloud } from './menu.js';
 
 let els = {};
-let points = []; // [{x,y,run} in canvas coords] for hover/click
-const PADDING = { l: 48, r: 18, t: 12, b: 28 }; // keep labels from being cut off
+let points = []; // [{x,y,run}] for hover/click
+const PADDING = { l: 48, r: 18, t: 12, b: 28 };
 
 export function initStatsView(sectionEl){
   els = {
@@ -79,21 +79,32 @@ function renderStats(){
     .sort((a,b)=> new Date(a.dateISO) - new Date(b.dateISO));
 
   // Fill goal input
-  els.goalInput.value = goalSec ? fmtSec(goalSec) : '';
+  els.goalInput.value = isFinite(goalSec) ? fmtSec(goalSec) : '';
 
   // KPIs
+  let last = NaN;
   if(runs.length){
     const times = runs.map(r=>r.timeSec);
     const best = Math.min(...times);
     const avg  = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
-    const last = runs[runs.length-1].timeSec;
+    last = runs[runs.length-1].timeSec;
 
     els.bestTime.textContent = fmtSec(best);
     els.avgTime.textContent  = fmtSec(avg);
     els.lastTime.textContent = fmtSec(last);
-    els.gapToGoal.textContent = isFinite(goalSec) ? (last - goalSec >= 0 ? `+${fmtSec(last-goalSec)}` : `-${fmtSec(goalSec-last)}`) : '–';
   }else{
-    els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = els.gapToGoal.textContent = '–';
+    els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = '–';
+  }
+
+  // Gap to goal text + color chip on the KPI tile
+  const gapBox = els.gapToGoal.closest('.kpi');
+  gapBox.classList.remove('good','bad');
+  if(isFinite(goalSec) && runs.length){
+    const diff = last - goalSec;
+    els.gapToGoal.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
+    gapBox.classList.add(diff <= 0 ? 'good' : 'bad'); // green if <= 0, red if >
+  }else{
+    els.gapToGoal.textContent = '–';
   }
 
   // Table
@@ -131,24 +142,45 @@ function drawChart(runs, track, goalSec){
 
   points = [];
 
-  // Frame
-  ctx.strokeStyle = '#cfcfcf';
+  // Colors from CSS var --line (slightly darker grey)
+  const lineColor = cssVar('--line', '#a8a8a8');
+
+  // Frame (use darker grey)
+  ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
   ctx.strokeRect(PADDING.l-0.5, PADDING.t-0.5, cssW - PADDING.l - PADDING.r + 1, cssH - PADDING.t - PADDING.b + 1);
 
+  // If no runs: still show goal line if available
   if(!runs.length){
+    if (isFinite(goalSec)) {
+      const x0 = PADDING.l, x1 = cssW - PADDING.r;
+      const y0 = cssH - PADDING.b, y1 = PADDING.t;
+      const yMin = goalSec - 60, yMax = goalSec + 60; // ±1 min window
+      const y = sec => y0 - (sec - yMin)/(yMax - yMin)*(y0 - y1);
+
+      // Goal line
+      ctx.strokeStyle = '#0b57d0';
+      ctx.setLineDash([4,4]);
+      ctx.beginPath();
+      ctx.moveTo(x0, y(goalSec));
+      ctx.lineTo(x1, y(goalSec));
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.fillStyle = '#555';
     ctx.textAlign = 'center';
     ctx.fillText('No data', cssW/2, cssH/2);
     return;
   }
 
-  // Y scale (time in seconds) with padding so labels/line don’t get cut
+  // Y scale (time in seconds) — include goal line so it is ALWAYS visible
   const rawMin = Math.min(...runs.map(r=>r.timeSec));
   const rawMax = Math.max(...runs.map(r=>r.timeSec));
-  const pad = Math.max(5, Math.round((rawMax-rawMin)*0.08));
-  const yMin = rawMin - pad;
-  const yMax = rawMax + pad;
+  const baseMin = isFinite(goalSec) ? Math.min(rawMin, goalSec) : rawMin;
+  const baseMax = isFinite(goalSec) ? Math.max(rawMax, goalSec) : rawMax;
+  const pad = Math.max(5, Math.round((baseMax-baseMin)*0.08));
+  const yMin = baseMin - pad;
+  const yMax = baseMax + pad;
 
   const x0 = PADDING.l, x1 = cssW - PADDING.r;
   const y0 = cssH - PADDING.b, y1 = PADDING.t;
@@ -158,29 +190,33 @@ function drawChart(runs, track, goalSec){
     : x0 + (i/(runs.length-1))*(x1-x0);
   const y = sec => y0 - (sec - yMin)/(yMax - yMin)*(y0 - y1);
 
-  // Y ticks (4)
-  ctx.fillStyle = '#555';
+  // Grid (a bit darker than before)
   ctx.textAlign = 'right';
-  ctx.strokeStyle = '#eee';
+  ctx.fillStyle = '#555';
+  ctx.strokeStyle = lineColor;
+  ctx.globalAlpha = 0.7; // darker feel than previous very light grey
   for(let i=0;i<=4;i++){
     const v = yMin + i*(yMax-yMin)/4;
     const yy = y(v);
     ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy); ctx.stroke();
     ctx.fillText(fmtSec(v), x0 - 6, yy);
   }
+  ctx.globalAlpha = 1;
 
   // X ticks: month labels
   ctx.textAlign = 'center';
+  ctx.strokeStyle = lineColor;
+  ctx.globalAlpha = 0.7;
   const months = monthChanges(runs);
   months.forEach(({i, date})=>{
     const xx = x(i);
-    ctx.strokeStyle = '#eee';
     ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y1); ctx.stroke();
     ctx.fillStyle = '#555';
     ctx.fillText(fmtMonthYear(date), xx, y0 + 16);
   });
+  ctx.globalAlpha = 1;
 
-  // Goal line
+  // Goal line (always included in scale above)
   if(isFinite(goalSec)){
     ctx.strokeStyle = '#0b57d0';
     ctx.setLineDash([4,4]);
@@ -195,6 +231,7 @@ function drawChart(runs, track, goalSec){
   ctx.strokeStyle = '#111';
   ctx.lineWidth = 2;
   ctx.beginPath();
+  points.length = 0;
   runs.forEach((r,i)=>{
     const xx = x(i), yy = y(r.timeSec);
     if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy);
@@ -231,13 +268,11 @@ function onChartHover(ev){
     <div><strong>${fmtDate(best.run.dateISO)}</strong></div>
     <div>Time: <span class="num">${fmtSec(best.run.timeSec)}</span></div>
   `;
-  // position above the point
   els.chartTip.style.left = `${best.x}px`;
   els.chartTip.style.top  = `${best.y}px`;
 }
 
 function onChartClick(){
-  // simple: hide tip on click
   els.chartTip.style.display = 'none';
 }
 
@@ -245,7 +280,6 @@ function onChartClick(){
 function currentTrackId(){ return els.trackSelect?.value || ''; }
 
 function parseGoal(s){
-  // allow mm:ss or mm
   const sec = parseTimeToSec(String(s||'').trim());
   return isFinite(sec) ? sec : NaN;
 }
@@ -270,4 +304,9 @@ function escapeHtml(s){
     .replaceAll('&','&amp;')
     .replaceAll('<','&lt;')
     .replaceAll('>','&gt;');
+}
+
+function cssVar(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
 }
