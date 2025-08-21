@@ -306,7 +306,7 @@ function renderProgressBattery(runs, goalSecStored){
   // fill cells (ensure at least one visible)
   const cells = els.progressCells.children;
   const fillCount = Math.max(1, Math.ceil(frac * 10));
-  // Handpicked color palette from red → yellow → green
+  // Handpicked color palette from red → yellow → green (10 steps)
 const palette = [
   "#e74c3c", // red
   "#e67e22", // orange
@@ -317,16 +317,24 @@ const palette = [
   "#7cb342", // green strong
   "#43a047", // dark green
   "#388e3c", // deeper green
-  "#78d66d"  // darkest green
+  "#2e7d32"  // darkest green
 ];
 
-for(let i=0;i<cells.length;i++){
+for (let i = 0; i < cells.length; i++) {
   const cell = cells[i];
-  const color = palette[i];
-  cell.style.backgroundColor = color;
-  cell.style.borderColor = color;
-  cell.classList.toggle('filled', i < fillCount);
+  if (i < fillCount) {
+    const color = palette[Math.min(i, palette.length - 1)];
+    cell.style.backgroundColor = color;
+    cell.style.borderColor = color;
+    cell.classList.add('filled');   // sets opacity: 1
+  } else {
+    // neutral style for unfilled cells
+    cell.style.backgroundColor = '#e5e7eb'; // light grey
+    cell.style.borderColor = 'var(--line)';
+    cell.classList.remove('filled');        // back to opacity: .28
+  }
 }
+
 
 
   // header and minimal legend (as requested: no Baseline/Best/Remaining details)
