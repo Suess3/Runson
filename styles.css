@@ -1,10 +1,10 @@
-/* --- Goal progress battery --- */
+/* --- Goal progress battery (if not already present) --- */
 .progress-card{
   margin: 14px 0 10px;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff9; /* slight translucent white */
+  background: #fff9;
   backdrop-filter: blur(2px);
 }
 .progress-card.disabled{ opacity: 0.7; }
@@ -16,12 +16,7 @@
 .progress-head .title{ font-weight:600; }
 .progress-head .pct{ font-variant-numeric: tabular-nums; font-weight:700; }
 
-.battery{
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+.battery{ position: relative; display: flex; align-items: center; gap: 10px; }
 .battery .cells{
   display: grid;
   grid-template-columns: repeat(10, 1fr);
@@ -40,23 +35,27 @@
   opacity: .28;
   transition: opacity .3s ease, transform .2s ease;
 }
-.battery .cell.filled{
-  opacity: 1;
-  transform: translateY(-1px);
-}
+.battery .cell.filled{ opacity: 1; transform: translateY(-1px); }
 .battery .cap{
-  width: 10px;
-  height: 18px;
-  border: 2px solid var(--line);
-  border-left: none;
-  border-radius: 0 6px 6px 0;
-  background: #fff;
+  width: 10px; height: 18px;
+  border: 2px solid var(--line); border-left: none;
+  border-radius: 0 6px 6px 0; background: #fff;
 }
-
 .progress-meta{
   display:flex; flex-wrap:wrap; gap:10px 16px;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: .95rem;
+  margin-top: 8px; color: var(--muted); font-size: .95rem;
 }
 .progress-meta b{ color: var(--ink); }
+
+/* --- Home hero image under the box, inside the Home panel --- */
+#view-home::after{
+  content:"";
+  display:block;
+  height: 240px;               /* adjust if you want it taller/shorter */
+  margin-top: 12px;
+  border-radius: 12px;
+  background:
+    center / cover no-repeat
+    url("./Screenshot%202025-08-21%20at%2016.33.22.png");
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
