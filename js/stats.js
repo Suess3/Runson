@@ -1,5 +1,5 @@
 // js/stats.js
-// Stats view: KPIs, table, canvas chart, and goal-progres battery!
+// Stats view: KPIs, table, canvas chart, and goal-progress battery
 
 import {
   $, on, state, update,
@@ -88,11 +88,11 @@ function renderStats(){
   els.goalInput.value = isFinite(goalSecStored) ? fmtSec(goalSecStored) : '';
 
   // KPIs
-  let best = NaN, avg = NaN, last = NaN;
+  let last = NaN;
   if(runs.length){
     const times = runs.map(r=>r.timeSec);
-    best = Math.min(...times);
-    avg  = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+    const best = Math.min(...times);
+    const avg  = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
     last = runs[runs.length-1].timeSec;
 
     els.bestTime.textContent = fmtSec(best);
@@ -102,13 +102,13 @@ function renderStats(){
     els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = '–';
   }
 
-  // Gap to goal should compare to BEST time (not last)
+  // Gap to goal text + color on KPI tile
   const gapBox = els.gapToGoal.closest('.kpi');
   gapBox.classList.remove('good','bad');
   if(isFinite(goalSecStored) && runs.length){
-    const diff = best - goalSecStored; // positive = still slower than goal
+    const diff = last - goalSecStored;
     els.gapToGoal.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
-    gapBox.classList.add(diff <= 0 ? 'good' : 'bad'); // green if best <= goal
+    gapBox.classList.add(diff <= 0 ? 'good' : 'bad');
   }else{
     els.gapToGoal.textContent = '–';
   }
@@ -361,6 +361,7 @@ function onChartHover(ev){
   if(!points.length) return;
   const rect = els.chart.getBoundingClientRect();
   const mx = ev.clientX - rect.left;
+  // const my = ev.clientY - rect.top; // not needed
 
   // nearest by x
   let best = null, bestDx = Infinity;
