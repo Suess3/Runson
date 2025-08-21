@@ -1,6 +1,6 @@
 :root{
-  --bg:#b5e6f5;
-  --ink:#111; --muted:#555; --line:#a8a8a8; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
+  --bg:#b5e6f5; /* Background */
+  --ink:#111; --muted:#555; --line:#4f4f4f; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
   --wrap:max(320px, min(760px, 94vw));
 }
 
