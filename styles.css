@@ -157,7 +157,7 @@ tbody tr:hover{ background:#fafcff; }
   justify-content:center;
 }
 .home-art img{
-  width: min(420px, 88%);   /* responsive, capped */
+  width: min(380px, 88%);   /* responsive, capped */
   margin: 0 auto;
   height:auto;
   display:block;
