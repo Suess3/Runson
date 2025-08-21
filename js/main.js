@@ -1,49 +1,54 @@
-// js/main.js
 import { $, onRouteChange, current, subscribe } from './ui.js';
 import { initMenu, connectCloud } from './menu.js';
 import { initRunView, renderRunView } from './run.js';
 import { initTracksView, renderTracksView } from './tracks.js';
+import { initStatsView, renderStats } from './stats.js';
 
-const views = {
-  home:   $('#view-home'),
-  run:    $('#view-run'),
-  stats:  $('#view-stats'),
-  tracks: $('#view-tracks'),
+const sections = {
+  home:  $('#view-home'),
+  run:   $('#view-run'),
+  stats: $('#view-stats'),
+  tracks:$('#view-tracks')
 };
 
-let statsApi = null; // { initStatsView, renderStatsView } once loaded
-
-async function boot() {
-  initMenu();
-  initRunView(views.run);
-  initTracksView(views.tracks);
-
-  // Lazy-load stats so a stats error doesn't kill the whole app
-  try {
-    statsApi = await import('./stats.js');
-    statsApi.initStatsView(views.stats);
-  } catch (e) {
-    console.error('Stats module failed to load:', e);
-    views.stats.innerHTML = `<p class="muted">Stats failed to load. Check console.</p>`;
+function show(view){
+  for(const [k,el] of Object.entries(sections)){
+    el.classList.toggle('hidden', k!==view);
   }
-
-  function show(view) {
-    Object.entries(views).forEach(([k, el]) => el.classList.toggle('hidden', k !== view));
-    if (view === 'run')    renderRunView();
-    if (view === 'stats')  statsApi?.renderStatsView();
-    if (view === 'tracks') renderTracksView();
-  }
-
-  onRouteChange(show);
-  subscribe(() => show(current())); // re-render current view on state changes
-
-  show(current());
-  connectCloud();
-
-  // Redraw chart on resize if we're on stats
-  window.addEventListener('resize', () => {
-    if (current() === 'stats') statsApi?.renderStatsView();
-  });
 }
 
-boot();
+function wireNav(){
+  $('#navHome').addEventListener('click', ()=>location.hash='#/home');
+  $('#navRun').addEventListener('click',  ()=>location.hash='#/run');
+  $('#navStats').addEventListener('click',()=>location.hash='#/stats');
+  $('#navTracks').addEventListener('click',()=>location.hash='#/tracks');
+}
+
+function onHash(){
+  const v = current();
+  show(v);
+  if(v==='run')   renderRunView();
+  if(v==='stats') renderStats();
+  if(v==='tracks')renderTracksView();
+}
+
+function init(){
+  initMenu(sections.home);
+  initRunView(sections.run);
+  initStatsView(sections.stats);
+  initTracksView(sections.tracks);
+
+  wireNav();
+  window.addEventListener('hashchange', onHash);
+  onHash();
+
+  // sync chip
+  subscribe('sync', synced=>{
+    $('#syncChip').classList.toggle('hidden', !synced);
+  });
+
+  // if a sync code is saved, auto-connect
+  connectCloud(true).catch(()=>{});
+}
+
+init();
