@@ -72,45 +72,48 @@ function onDeleteRun(e){
   renderStats();
 }
 
-// ---------- Render ----------
+// ---------- Rendering ----------
 function renderStats(){
   const id = currentTrackId();
   const track = state.tracks.find(t=>t.id===id);
+  const goalSecStored = state.goals[id];
+
+  // runs for selected track, sorted by date (ascending)
   const runs = state.runs
     .filter(r=>r.trackId===id)
+    .slice()
     .sort((a,b)=> new Date(a.dateISO) - new Date(b.dateISO));
 
-  // goal field (show stored, fallback blank)
-  const goalSecStored = state.goals[id];
+  // Fill goal input
   els.goalInput.value = isFinite(goalSecStored) ? fmtSec(goalSecStored) : '';
 
   // KPIs
-  let last = NaN, best = NaN;
-  if (runs.length){
+  let last = NaN;
+  if(runs.length){
     const times = runs.map(r=>r.timeSec);
-    best = Math.min(...times);
+    const best = Math.min(...times);
     const avg  = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
     last = runs[runs.length-1].timeSec;
 
     els.bestTime.textContent = fmtSec(best);
     els.avgTime.textContent  = fmtSec(avg);
     els.lastTime.textContent = fmtSec(last);
-  } else {
+  }else{
     els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = '–';
   }
 
-  // Gap to goal text + color on KPI tile (USE BEST, not last)
+  // Gap to goal text + color on KPI tile
   const gapBox = els.gapToGoal.closest('.kpi');
   gapBox.classList.remove('good','bad');
-  if (isFinite(goalSecStored) && runs.length){
-    const diff = best - goalSecStored; // ✅ compute from BEST time
+  if(isFinite(goalSecStored) && runs.length){
+    const diff = last - goalSecStored;
     els.gapToGoal.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
-    gapBox.classList.add(diff <= 0 ? 'good' : 'bad'); // green when at/under goal
-  } else {
+    gapBox.classList.add(diff <= 0 ? 'good' : 'bad');
+  }else{
     els.gapToGoal.textContent = '–';
   }
 
-  // Chart (includes goal line in scale)
+  // Chart (always includes goal line in scale)
   drawChart(runs, track, goalSecStored);
 
   // Progress battery (beneath chart)
@@ -123,12 +126,7 @@ function renderStats(){
 function renderRunsTable(runs, track, goalSec){
   els.runsTableBody.innerHTML = runs.map(r=>{
     const pace = track ? paceMinPerKm(r.timeSec, track.distanceKm) : '–';
-    const delta = isFinite(goalSec)
-      ? (r.timeSec - goalSec >= 0
-          ? `+${fmtSec(r.timeSec-goalSec)}`
-          : `-${fmtSec(goalSec-r.timeSec)}`
-        )
-      : '–';
+    const delta = isFinite(goalSec) ? (r.timeSec - goalSec >= 0 ? `+${fmtSec(r.timeSec-goalSec)}` : `-${fmtSec(goalSec-r.timeSec)}`) : '–';
     return `<tr>
       <td class="col-date">${fmtDate(r.dateISO)}</td>
       <td class="col-time num">${fmtSec(r.timeSec)}</td>
@@ -142,43 +140,93 @@ function renderRunsTable(runs, track, goalSec){
 
 // ---------- Chart ----------
 function drawChart(runs, track, goalSec){
-  const cvs = els.chart;
-  const ctx = cvs.getContext('2d');
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  const W = Math.floor(cvs.clientWidth * dpr);
-  const H = Math.floor(cvs.clientHeight * dpr);
-  cvs.width = W; cvs.height = H;
+  const canvas = els.chart;
+  const dpr = Math.max(1, Math.min(3, globalThis.devicePixelRatio||1));
+  const cssW = canvas.clientWidth || 600;
+  const cssH = canvas.clientHeight || 260;
+  canvas.width  = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
 
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0,0,W,H);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+  ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#000';
 
-  const x0 = PADDING.l, x1 = W - PADDING.r;
-  const y0 = PADDING.t, y1 = H - PADDING.b;
+  points = [];
 
-  // y-scale from min/max including goal
-  const times = runs.map(r=>r.timeSec);
-  if (isFinite(goalSec)) times.push(goalSec);
-  const minT = Math.min(...times, isFinite(goalSec)?goalSec:Infinity);
-  const maxT = Math.max(...times, isFinite(goalSec)?goalSec:-Infinity);
-  const pad = Math.round((maxT - minT) * 0.08) || 10;
-  const ymin = Math.max(0, minT - pad);
-  const ymax = maxT + pad;
+  const lineColor = cssVar('--line', '#a8a8a8');
 
-  const x = (i)=> x0 + ( (runs.length<=1?0:i/(runs.length-1)) * (x1-x0) );
-  const y = (t)=> y1 - ( (t - ymin) / (ymax - ymin) ) * (y1 - y0);
-
-  // axes
-  ctx.strokeStyle = '#dfe6ee';
+  // Frame
+  ctx.strokeStyle = lineColor;
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.lineTo(x1,y1);
-  ctx.stroke();
+  ctx.strokeRect(PADDING.l-0.5, PADDING.t-0.5, cssW - PADDING.l - PADDING.r + 1, cssH - PADDING.t - PADDING.b + 1);
 
-  // goal line
-  if (isFinite(goalSec)) drawGoalLine(ctx, x0, x1, y(goalSec));
+  if(!runs.length){
+    // still show goal line if available
+    if (isFinite(goalSec)) {
+      const x0 = PADDING.l, x1 = cssW - PADDING.r;
+      const y0 = cssH - PADDING.b, y1 = PADDING.t;
+      const yMin = goalSec - 60, yMax = goalSec + 60; // ±1 min window
+      const y = sec => y0 - (sec - yMin)/(yMax - yMin)*(y0 - y1);
+      drawGoalLine(ctx, x0, x1, y(goalSec));
+    }
+    ctx.fillStyle = '#555';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data', cssW/2, cssH/2);
+    return;
+  }
 
-  // series
+  // Y scale must include goal so it's always visible
+  const rawMin = Math.min(...runs.map(r=>r.timeSec));
+  const rawMax = Math.max(...runs.map(r=>r.timeSec));
+  const baseMin = isFinite(goalSec) ? Math.min(rawMin, goalSec) : rawMin;
+  const baseMax = isFinite(goalSec) ? Math.max(rawMax, goalSec) : rawMax;
+  const pad = Math.max(5, Math.round((baseMax-baseMin)*0.08));
+  const yMin = baseMin - pad;
+  const yMax = baseMax + pad;
+
+  const x0 = PADDING.l, x1 = cssW - PADDING.r;
+  const y0 = cssH - PADDING.b, y1 = PADDING.t;
+
+  const x = i => runs.length===1
+    ? (x0+x1)/2
+    : x0 + (i/(runs.length-1))*(x1-x0);
+  const y = sec => y0 - (sec - yMin)/(yMax - yMin)*(y0 - y1);
+
+  // Grid
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#555';
+  ctx.strokeStyle = lineColor;
+  ctx.globalAlpha = 0.7;
+  for(let i=0;i<=4;i++){
+    const v = yMin + i*(yMax-yMin)/4;
+    const yy = y(v);
+    ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy); ctx.stroke();
+    ctx.fillText(fmtSec(v), x0 - 6, yy);
+  }
+  ctx.globalAlpha = 1;
+
+  // X ticks: month labels
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = lineColor;
+  ctx.globalAlpha = 0.7;
+  const months = monthChanges(runs);
+  months.forEach(({i, date})=>{
+    const xx = x(i);
+    ctx.beginPath(); ctx.moveTo(xx, y0); ctx.lineTo(xx, y1); ctx.stroke();
+    ctx.fillStyle = '#555';
+    ctx.fillText(fmtMonthYear(date), xx, y0 + 16);
+  });
+  ctx.globalAlpha = 1;
+
+  // Goal line (with translucent thick background + dashed blue foreground)
+  if(isFinite(goalSec)){
+    drawGoalLine(ctx, x0, x1, y(goalSec));
+  }
+
+  // Line + points
   ctx.strokeStyle = '#111';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -190,7 +238,7 @@ function drawChart(runs, track, goalSec){
   });
   ctx.stroke();
 
-  // points
+  // Points
   ctx.fillStyle = '#111';
   points.forEach(p=>{
     ctx.beginPath();
@@ -200,75 +248,104 @@ function drawChart(runs, track, goalSec){
 }
 
 function drawGoalLine(ctx, x0, x1, yline){
+  // translucent thick background
   ctx.save();
   ctx.lineCap = 'round';
-
-  // soft glow
   ctx.lineWidth = 10;
-  ctx.strokeStyle = 'rgba(11,87,208,0.08)';
-  ctx.beginPath(); ctx.moveTo(x0, yline); ctx.lineTo(x1, yline); ctx.stroke();
+  ctx.strokeStyle = 'rgba(11, 87, 208, 0.18)'; // accent but soft
+  ctx.beginPath();
+  ctx.moveTo(x0, yline);
+  ctx.lineTo(x1, yline);
+  ctx.stroke();
+  ctx.restore();
 
-  // main dashed line
-  ctx.setLineDash([6,6]);
+  // dashed foreground
+  ctx.save();
+  ctx.strokeStyle = '#0b57d0';
+  ctx.setLineDash([6, 8]);
   ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(11,87,208,0.6)';
-  ctx.beginPath(); ctx.moveTo(x0, yline); ctx.lineTo(x1, yline); ctx.stroke();
-
+  ctx.beginPath();
+  ctx.moveTo(x0, yline);
+  ctx.lineTo(x1, yline);
+  ctx.stroke();
   ctx.restore();
 }
 
-// ---------- Progress battery ----------
-function renderProgressBattery(runs, goalSec){
-  const haveGoal = isFinite(goalSec);
-  injectProgressCardIfNeeded();
+// ---------- Progress Battery ----------
+function renderProgressBattery(runs, goalSecStored){
+  ensureProgressDom();
 
-  const cells = els.progressCells.children;
-  clearCells(cells);
-
-  if (!haveGoal || !runs.length){
+  if(!runs.length){
     els.progressWrap.classList.add('disabled');
-    els.progressPct.textContent = '—';
-    els.progressMeta.innerHTML = `<div>No goal or runs yet.</div>`;
+    els.progressPct.textContent = '–';
+    els.progressMeta.innerHTML = '<span>Run to set your baseline.</span>';
+    clearCells(els.progressCells.children);
     return;
   }
-
   els.progressWrap.classList.remove('disabled');
 
-  const best = Math.min(...runs.map(r=>r.timeSec));
-  const pct = Math.max(0, Math.min(100, Math.round(100 * goalSec / best)));
-  els.progressPct.textContent = pct + '%';
+  // Baseline = time of the FIRST run for this track
+  const baselineSec = runs[0].timeSec;
+  const bestSec = Math.min(...runs.map(r=>r.timeSec));
 
-  // fill cells up to pct
-  const toFill = Math.round(cells.length * Math.min(100,pct)/100);
-  for(let i=0;i<toFill;i++){
-    cells[i].style.background = 'linear-gradient(#bcd8ff,#d9e6ff)';
-    cells[i].style.borderColor = '#c6d6ff';
-    cells[i].classList.add('filled');
+  // Use goal if valid and faster than baseline; otherwise derive a target (20% faster)
+  let goalSec = goalSecStored;
+  let derived = false;
+  if(!isFinite(goalSec) || goalSec >= baselineSec){
+    goalSec = Math.max(1, Math.round(baselineSec * 0.8));
+    derived = true;
   }
 
-  els.progressMeta.innerHTML =
-    `<div>Best: <b class="num">${fmtSec(best)}</b></div>` +
-    (isFinite(goalSec) ? `<div>Goal: <b class="num">${fmtSec(goalSec)}</b></div>` : '');
+  const totalGain = Math.max(1, baselineSec - goalSec); // seconds to shave off
+  const achieved = Math.max(0, baselineSec - bestSec);
+  const frac = Math.max(0, Math.min(1, achieved / totalGain));
+  const pct = Math.round(frac * 100);
+
+  // fill cells (ensure at least one visible)
+  const cells = els.progressCells.children;
+  const fillCount = Math.max(1, Math.ceil(frac * 10));
+  for(let i=0;i<cells.length;i++){
+    const cell = cells[i];
+    const hue = Math.round((i / 9) * 120); // red->green
+    const color = `hsl(${hue}deg 80% 45%)`;
+    cell.style.backgroundColor = color;
+    cell.style.borderColor = color;
+    cell.classList.toggle('filled', i < fillCount);
+  }
+
+  // header and legend
+  els.progressPct.textContent = `${pct}%`;
+  const remaining = Math.max(0, bestSec - goalSec);
+  const goalLabel = derived ? 'target' : 'goal';
+  els.progressMeta.innerHTML = `
+    <span>Baseline: <b class="num">${fmtSec(baselineSec)}</b></span>
+    <span>Best: <b class="num">${fmtSec(bestSec)}</b></span>
+    <span>${goalLabel[0].toUpperCase()+goalLabel.slice(1)}: <b class="num">${fmtSec(goalSec)}</b></span>
+    <span>Remaining: <b class="num">${remaining>0?('+'+fmtSec(remaining)):'0:00'}</b></span>
+  `;
 }
 
-function injectProgressCardIfNeeded(){
-  if (els.progressWrap) return;
+function ensureProgressDom(){
+  if(els.progressWrap) return;
 
   const card = document.createElement('div');
   card.className = 'progress-card';
   card.innerHTML = `
     <div class="progress-head">
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="progress-tip"></div>
-        <strong>Goal progress</strong> &nbsp;<span id="progressPct">—</span>
+      <div class="title">Goal progress</div>
+      <div class="pct"><span id="progressPct">0%</span></div>
+    </div>
+    <div class="battery" role="img" aria-label="Goal progress battery">
+      <div class="cells" id="progressCells">
+        ${Array.from({length:10},(_,i)=>`<div class="cell" data-i="${i}"></div>`).join('')}
       </div>
+      <div class="cap"></div>
     </div>
-    <div class="progress" aria-label="Battery progress">
-      <div id="progressCells" class="progress-cells">${'<div></div>'.repeat(20)}</div>
-    </div>
-    <div id="progressMeta" class="progress-meta"></div>
+    <div class="progress-meta" id="progressMeta"></div>
   `;
-  els.wrap.querySelector('.chart-wrap').after(card);
+  // place beneath chart, above runs table
+  els.chart.insertAdjacentElement('afterend', card);
+
   els.progressWrap = card;
   els.progressCells = card.querySelector('#progressCells');
   els.progressPct   = card.querySelector('#progressPct');
@@ -276,11 +353,7 @@ function injectProgressCardIfNeeded(){
 }
 
 function clearCells(nodes){
-  for(const n of nodes){
-    n.classList.remove('filled');
-    n.style.backgroundColor='transparent';
-    n.style.borderColor='var(--line)';
-  }
+  for(const n of nodes){ n.classList.remove('filled'); n.style.backgroundColor='transparent'; n.style.borderColor='var(--line)'; }
 }
 
 // ---------- Chart interactions ----------
@@ -288,6 +361,7 @@ function onChartHover(ev){
   if(!points.length) return;
   const rect = els.chart.getBoundingClientRect();
   const mx = ev.clientX - rect.left;
+  // const my = ev.clientY - rect.top; // not needed
 
   // nearest by x
   let best = null, bestDx = Infinity;
@@ -302,22 +376,35 @@ function onChartHover(ev){
     <div><strong>${fmtDate(best.run.dateISO)}</strong></div>
     <div>Time: <span class="num">${fmtSec(best.run.timeSec)}</span></div>
   `;
-  els.chartTip.style.left = best.x + 'px';
-  els.chartTip.style.top = best.y + 'px';
+  els.chartTip.style.left = `${best.x}px`;
+  els.chartTip.style.top  = `${best.y}px`;
 }
 
-function onChartClick(){ /* reserved for future */ }
+function onChartClick(){
+  els.chartTip.style.display = 'none';
+}
 
-// ---------- Utils ----------
-function currentTrackId(){ return els.trackSelect.value || state.tracks[0]?.id; }
-function parseGoal(v){
-  const s = String(v||'').trim();
-  if(!s) return NaN;
-  const parts = s.split(':').map(Number);
-  if(parts.length===2) return parts[0]*60 + parts[1];
-  if(parts.length===3) return parts[0]*3600 + parts[1]*60 + parts[2];
-  // allow plain minutes
-  const n = Number(s.replace(',','.')); return isFinite(n) ? Math.round(n*60) : NaN;
+// ---------- Helpers ----------
+function currentTrackId(){ return els.trackSelect?.value || ''; }
+
+function parseGoal(s){
+  const sec = parseTimeToSec(String(s||'').trim());
+  return isFinite(sec) ? sec : NaN;
+}
+
+function monthChanges(runs){
+  if(!runs.length) return [];
+  const out = [];
+  let prevM = -1, prevY = -1;
+  runs.forEach((r,i)=>{
+    const d = new Date(r.dateISO);
+    const m = d.getMonth(), y = d.getFullYear();
+    if(m !== prevM || y !== prevY){
+      out.push({ i, date: d });
+      prevM = m; prevY = y;
+    }
+  });
+  return out;
 }
 
 function escapeHtml(s){
@@ -325,4 +412,9 @@ function escapeHtml(s){
     .replaceAll('&','&amp;')
     .replaceAll('<','&lt;')
     .replaceAll('>','&gt;');
+}
+
+function cssVar(name, fallback){
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
 }
