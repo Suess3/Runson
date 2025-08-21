@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Runson</title>
+  <title>Run Tracker (Minimal + Firebase)</title>
 
   <!-- Handwritten script font for background watermark -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
 
   <style>
-    /* ===== Minimal oldschool look with requested background ===== */
     :root{
-      --bg:#b5e6f5; /* requested */
+      --bg:#b5e6f5;
       --ink:#111; --muted:#555; --line:#cfcfcf; --accent:#0b57d0; --ok:#147a0a; --bad:#b00020;
       --wrap:max(320px, min(760px, 94vw));
     }
@@ -25,28 +24,34 @@
       position:relative;
     }
 
-    /* Background signature watermark (not inside white boxes) */
+    /* Background signature watermark, centered horizontally */
     body::after{
       content:"Made by Johannes";
-      position:fixed; right:50%; bottom:14px;
+      position:fixed;
+      left:50%; bottom:14px; right:auto;
+      transform:translateX(-50%) rotate(-2deg);
       font-family:"Great Vibes", cursive;
       font-size:clamp(28px, 6vw, 52px);
       color:#2d2d2d; opacity:.18;
-      transform:rotate(-2deg);
       pointer-events:none;
-      z-index:0; /* stays behind content */
+      z-index:0;
       white-space:nowrap;
     }
 
     .wrap{max-width:var(--wrap); margin:0 auto; padding:12px; position:relative; z-index:1}
-    header{display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px 0 10px; border-bottom:1px solid var(--line); margin-bottom:12px}
+    header{display:flex; align-items:center; gap:10px; padding:6px 0 10px; border-bottom:1px solid var(--line); margin-bottom:12px}
     h1{font-size:18px; margin:0}
+    .spacer{flex:1}
 
     .nav{display:flex; gap:6px; flex-wrap:wrap}
     .btn{appearance:none; -webkit-appearance:none; cursor:pointer; border:1px solid var(--line); background:#f8f8f8; color:var(--ink); padding:6px 10px; border-radius:6px; font-weight:600}
     .btn.primary{background:#e9f0ff; border-color:#bcd0ff; color:#0b3fb0}
     .btn.sm{padding:4px 8px; font-size:12px}
     .btn.danger{background:#ffecec; border-color:#f2b8b5; color:#b00020}
+
+    /* Persistent sync chip */
+    .chip{align-self:center; padding:4px 8px; border-radius:999px; border:1px solid #bfe3bf; background:#eaf7ea; color:#147a0a; font-weight:700; font-size:12px}
+    .hidden{display:none !important}
 
     .panel{border:1px solid var(--line); border-radius:6px; padding:12px; background:#fff; margin-bottom:12px}
 
@@ -57,7 +62,6 @@
     .row{display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap}
     .grow{flex:1 1 160px}
     .muted{color:var(--muted)}
-    .hidden{display:none !important}
 
     /* Table */
     .table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; border:1px solid var(--line); border-radius:6px; background:#fff}
@@ -72,8 +76,17 @@
     .col-note{min-width: 18ch}
     .col-act{min-width: 8ch}
 
-    /* Chart: dynamic left padding in JS so labels never clip */
+    /* Chart + tooltip */
+    .chart-wrap{position:relative}
     #chart{width:100%; height:260px; border:1px solid var(--line); border-radius:6px; background:#fff}
+    #chartTip{
+      position:fixed; z-index:20; display:none;
+      background:rgba(17,17,17,.92); color:#fff;
+      padding:6px 8px; border-radius:6px; font-size:12px; line-height:1.35;
+      transform:translate(-50%, calc(-100% - 10px));
+      pointer-events:none; white-space:nowrap;
+      box-shadow:0 6px 18px rgba(0,0,0,.22);
+    }
 
     .kpis{display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:8px}
     .kpi{border:1px solid var(--line); border-radius:6px; padding:10px; background:#fff}
@@ -86,12 +99,14 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>🏃‍♂️ Runson</h1>
+      <h1>🏃‍♂️ Run Tracker</h1>
+      <div class="spacer"></div>
       <nav class="nav">
         <button class="btn" id="navHome">Home</button>
         <button class="btn" id="navRun">Run</button>
         <button class="btn" id="navStats">Stats</button>
         <button class="btn" id="navTracks">Tracks</button>
+        <span id="syncChip" class="chip hidden" title="Connected to cloud">✓ Synced</span>
       </nav>
     </header>
 
@@ -99,7 +114,7 @@
     <section id="view-home" class="panel">
       <p class="muted" style="margin:0 0 8px">Data is stored locally by default. Enable cloud sync to access from all devices.</p>
       <details open>
-        <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync</summary>
+        <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync (Firebase Firestore)</summary>
         <p class="muted" style="margin:8px 0">Hint: you can use the sync code <strong>“Run”</strong> to get started quickly. Use the same code on all devices.</p>
         <label for="syncCode">Sync code</label>
         <input id="syncCode" placeholder="e.g. Run" />
@@ -173,7 +188,10 @@
         <div class="kpi"><div class="label">Gap to goal</div><div class="value num" id="gapToGoal">–</div></div>
       </div>
 
-      <canvas id="chart" aria-label="Progress chart"></canvas>
+      <div class="chart-wrap">
+        <canvas id="chart" aria-label="Progress chart"></canvas>
+        <div id="chartTip"></div>
+      </div>
 
       <div class="table-wrap" style="margin-top:10px">
         <table>
@@ -217,6 +235,7 @@
               <th>Name</th>
               <th class="num">km</th>
               <th class="num">runs</th>
+              <th class="col-act">Delete</th>
             </tr>
           </thead>
           <tbody id="tracksTable"></tbody>
@@ -295,6 +314,16 @@ function parseTimeToSec(input){
 }
 
 function fmtDate(d){ const dt=(d instanceof Date)? d : new Date(d); return dt.toLocaleDateString(undefined,{year:'numeric',month:'2-digit',day:'2-digit'}); }
+function fmtMonth(d){
+  const dt=(d instanceof Date)? d : new Date(d);
+  const opts = { month:'short' };
+  return dt.toLocaleDateString(undefined, opts);
+}
+function fmtMonthYear(d){
+  const dt=(d instanceof Date)? d : new Date(d);
+  const opts = { month:'short', year:'numeric' };
+  return dt.toLocaleDateString(undefined, opts);
+}
 function ymd(d){ const dt=(d instanceof Date)? d : new Date(d); return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
 function paceMinPerKm(timeSec, km){ if(!isFinite(timeSec)||!isFinite(km)||km<=0) return '–'; return fmtSec(timeSec/km); }
 function slugify(str){
@@ -330,6 +359,8 @@ $('#navRun').onclick    = () => Router.go('run');
 $('#navStats').onclick  = () => Router.go('stats');
 $('#navTracks').onclick = () => Router.go('tracks');
 
+const syncChip = $('#syncChip');
+
 const trackSelect = $('#trackSelect');
 const distanceInput = $('#distance');
 const attemptsInput = $('#attempts');
@@ -349,6 +380,7 @@ const avgTimeEl = $('#avgTime');
 const lastTimeEl = $('#lastTime');
 const gapToGoalEl = $('#gapToGoal');
 const chartCanvas = $('#chart');
+const chartTip = $('#chartTip');
 
 // Tracks view elements
 const newTrackName = $('#newTrackName');
@@ -357,12 +389,15 @@ const addTrackBtn = $('#addTrackBtn');
 const trackMsg = $('#trackMsg');
 const tracksTableBody = $('#tracksTable');
 
-// Fill selects
+/***********************
+ * Selects + defaults
+ ***********************/
 function fillTrackSelects(){
   const opts=state.tracks.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
   trackSelect.innerHTML=opts;
   trackStatsSelect.innerHTML=opts;
 }
+function ensureSelectHasValue(sel, arr){ if(!sel.value && arr[0]) sel.value = arr[0].id; }
 function setRunDefaults(){
   const t=state.tracks.find(x=>x.id===trackSelect.value);
   if(!t) return;
@@ -412,10 +447,13 @@ async function connectCloud(){
           cloudMsg.textContent = 'Synced from cloud.'; setTimeout(()=>cloudMsg.textContent='', 1200);
         }
       }
+      // Show persistent synced chip after listener is live (and first snapshot processed)
+      fb.connected = true;
+      syncChip.classList.remove('hidden');
     });
-    fb.connected = true;
-    cloudMsg.textContent = 'Connected. Live sync enabled.';
-  }catch(e){ cloudMsg.textContent = 'Cloud error: '+(e?.message||e); }
+  }catch(e){
+    cloudMsg.textContent = 'Cloud error: '+(e?.message||e);
+  }
 }
 async function pushToCloud(){
   if(!fb.connected || !fb.docRef) return;
@@ -468,14 +506,19 @@ runsTableBody.addEventListener('click', async (e)=>{
 });
 
 /***********************
- * Tracks: add + list
+ * Tracks: add + list + delete
  ***********************/
 function renderTracks(){
   const rows = state.tracks.map(t=>{
     const count = state.runs.filter(r=>r.trackId===t.id).length;
-    return `<tr><td>${t.name}</td><td class="num">${t.distanceKm}</td><td class="num">${count}</td></tr>`;
+    return `<tr>
+      <td>${t.name}</td>
+      <td class="num">${t.distanceKm}</td>
+      <td class="num">${count}</td>
+      <td class="col-act"><button class="btn sm danger" data-del-track="${t.id}">Delete</button></td>
+    </tr>`;
   }).join('');
-  tracksTableBody.innerHTML = rows || `<tr><td colspan="3" class="muted">No tracks yet.</td></tr>`;
+  tracksTableBody.innerHTML = rows || `<tr><td colspan="4" class="muted">No tracks yet.</td></tr>`;
 }
 addTrackBtn?.addEventListener('click', async ()=>{
   const name = (newTrackName.value||'').trim();
@@ -487,21 +530,45 @@ addTrackBtn?.addEventListener('click', async ()=>{
   saveJson(LS_KEYS.tracks, state.tracks);
   await pushToCloud();
   newTrackName.value=''; newTrackKm.value=''; trackMsg.textContent='Track added ✓'; setTimeout(()=>trackMsg.textContent='', 1600);
+  fillTrackSelects(); ensureSelectHasValue(trackSelect, state.tracks); ensureSelectHasValue(trackStatsSelect, state.tracks);
+  renderTracks(); setRunDefaults(); renderStats();
+});
+tracksTableBody.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button[data-del-track]');
+  if(!btn) return;
+  const id = btn.getAttribute('data-del-track');
+  const trk = state.tracks.find(t=>t.id===id);
+  if(!trk) return;
+  if(!confirm(`Delete track "${trk.name}" and all its runs?`)) return;
+
+  // Remove track, its runs, and its goal
+  state.tracks = state.tracks.filter(t=>t.id!==id);
+  state.runs   = state.runs.filter(r=>r.trackId!==id);
+  delete state.goals[id];
+
+  saveJson(LS_KEYS.tracks, state.tracks);
+  saveJson(LS_KEYS.runs,   state.runs);
+  saveJson(LS_KEYS.goals,  state.goals);
+  await pushToCloud();
+
+  // Refresh UI & selections
   fillTrackSelects();
-  renderTracks();
-  setRunDefaults();
+  ensureSelectHasValue(trackSelect, state.tracks);
+  ensureSelectHasValue(trackStatsSelect, state.tracks);
+  setRunDefaults(); renderStats(); renderTracks();
+  trackMsg.textContent='Track deleted ✓'; setTimeout(()=>trackMsg.textContent='', 1600);
 });
 
 /***********************
- * Stats rendering + chart (dynamic left padding)
+ * Stats rendering + chart (time-based spacing + smart labels)
  ***********************/
+let chartPoints = []; // [{x,y, row}]
 function renderStats(){
   const t=state.tracks.find(x=>x.id===trackStatsSelect.value);
   if(!t){
     runsTableBody.innerHTML='';
     bestTimeEl.textContent=avgTimeEl.textContent=lastTimeEl.textContent=gapToGoalEl.textContent='–';
-    drawChart([], 9*60);
-    return;
+    drawChart([], 9*60); return;
   }
   const goal = state.goals[t.id] ?? 9*60;
   goalInput.value = fmtSec(goal);
@@ -540,7 +607,7 @@ function renderStats(){
   drawChart(rows, goal);
 }
 
-// Chart with dynamic left padding so Y labels never clip
+// Draw chart with dynamic left padding + time-based X spacing + smart X labels
 function drawChart(rows, goalSec){
   const ctx=chartCanvas.getContext('2d');
   const DPR=window.devicePixelRatio||1;
@@ -551,14 +618,14 @@ function drawChart(rows, goalSec){
   if(chartCanvas.height!==h) chartCanvas.height=h;
   ctx.clearRect(0,0,w,h);
 
-  // Determine Y range
+  // Y range
   const times=rows.map(r=>r.timeSec);
   const minT=rows.length?Math.min(...times, goalSec):8*60;
   const maxT=rows.length?Math.max(...times, goalSec):14*60;
   const y0=Math.max(0, Math.floor((minT-45)/30)*30);
   const y1=Math.ceil((maxT+45)/30)*30;
 
-  // Measure widest Y label
+  // Compute widest Y label
   const labels=[];
   for(let s=y0; s<=y1; s+=60) labels.push(fmtSec(s));
   ctx.save();
@@ -567,13 +634,27 @@ function drawChart(rows, goalSec){
   for(const txt of labels){ const m=ctx.measureText(txt); if(m.width>maxLabelW) maxLabelW=m.width; }
   ctx.restore();
 
-  const padL = Math.ceil(maxLabelW + 14*DPR); // dynamic
-  const padR = 16*DPR, padT = 22*DPR, padB = 42*DPR;
+  const padL = Math.ceil(maxLabelW + 14*DPR);
+  const padR = 16*DPR, padT = 22*DPR, padB = 52*DPR;
   const pw=w-padL-padR, ph=h-padT-padB;
-  const X=i => padL + (rows.length<=1? pw/2 : i*(pw/(rows.length-1)));
   const Y=s => padT + (1 - (s - y0)/(y1 - y0)) * ph;
 
-  // Grid
+  // Time-based X mapping
+  let X;
+  if(rows.length<=1){
+    X = _i => padL + pw/2;
+  }else{
+    const t0 = new Date(rows[0].dateISO).getTime();
+    const t1 = new Date(rows[rows.length-1].dateISO).getTime();
+    const range = Math.max(1, t1 - t0);
+    X = (i) => {
+      const ti = new Date(rows[i].dateISO).getTime();
+      const frac = (ti - t0) / range;
+      return padL + frac * pw;
+    };
+  }
+
+  // Background grid (horizontal)
   ctx.save();
   ctx.translate(0.5*DPR,0.5*DPR);
   ctx.strokeStyle='#e5e5e5'; ctx.lineWidth=1*DPR;
@@ -588,10 +669,32 @@ function drawChart(rows, goalSec){
   ctx.textAlign='right'; ctx.textBaseline='middle';
   for(let s=y0; s<=y1; s+=60){ ctx.fillText(fmtSec(s), padL - 6*DPR, Y(s)); }
 
-  // X labels
+  // X labels: smart (dates vs months if too dense)
+  const xs = rows.map((_,i)=>X(i));
+  let minDx = Infinity;
+  for(let i=1;i<xs.length;i++) minDx = Math.min(minDx, xs[i]-xs[i-1]);
+  const minDxCss = minDx / DPR;
+  const overlap = minDxCss < 60; // threshold for switching to months
+
   ctx.textAlign='center'; ctx.textBaseline='top';
-  const step=Math.max(1, Math.floor(rows.length/6));
-  rows.forEach((r,i)=>{ if(i%step===0 || i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), X(i), h-padB+6*DPR); }});
+  ctx.fillStyle='#333';
+  if(!overlap){
+    // Sparse date labels every ~N points
+    const step=Math.max(1, Math.floor(rows.length/6));
+    rows.forEach((r,i)=>{ if(i%step===0 || i===rows.length-1){ ctx.fillText(fmtDate(r.dateISO), xs[i], h-padB+6*DPR); }});
+  }else{
+    // Month labels at month boundaries
+    let prevMonth = -1, prevYear = -1;
+    rows.forEach((r,i)=>{
+      const d = new Date(r.dateISO);
+      const m = d.getMonth(), y = d.getFullYear();
+      if(m!==prevMonth || y!==prevYear){
+        const label = (m===0) ? fmtMonthYear(d) : fmtMonth(d);
+        ctx.fillText(label, xs[i], h-padB+6*DPR);
+        prevMonth = m; prevYear = y;
+      }
+    });
+  }
 
   // Goal line (dashed)
   ctx.strokeStyle='#7aa2ff'; ctx.setLineDash([6*DPR,6*DPR]);
@@ -602,14 +705,57 @@ function drawChart(rows, goalSec){
   if(rows.length){
     ctx.strokeStyle='#147a0a'; ctx.lineWidth=2*DPR;
     ctx.beginPath();
-    rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi); });
+    rows.forEach((r,i)=>{ const xi=xs[i], yi=Y(r.timeSec); if(i===0) ctx.moveTo(xi,yi); else ctx.lineTo(xi,yi); });
     ctx.stroke();
   }
-  // Points
-  rows.forEach((r,i)=>{ const xi=X(i), yi=Y(r.timeSec); ctx.fillStyle = r.timeSec<=goalSec? '#147a0a' : '#b00020'; ctx.beginPath(); ctx.arc(xi,yi,3.5*DPR,0,Math.PI*2); ctx.fill(); });
+
+  // Points (store for hit-testing)
+  chartPoints = [];
+  rows.forEach((r,i)=>{
+    const xi=xs[i], yi=Y(r.timeSec);
+    ctx.fillStyle = r.timeSec<=goalSec? '#147a0a' : '#b00020';
+    ctx.beginPath(); ctx.arc(xi,yi,3.8*DPR,0,Math.PI*2); ctx.fill();
+    chartPoints.push({ x: xi, y: yi, row: r });
+  });
 }
 
-function ensureSelectHasValue(sel, arr){ if(!sel.value && arr[0]) sel.value = arr[0].id; }
+/***************
+ * Chart interactions (tooltip on points)
+ ***************/
+function findNearestPoint(clientX, clientY){
+  const DPR = window.devicePixelRatio||1;
+  const rect = chartCanvas.getBoundingClientRect();
+  const mx = (clientX - rect.left) * DPR;
+  const my = (clientY - rect.top) * DPR;
+  let best = null, bestDist = Infinity;
+  for(const p of chartPoints){
+    const dx = p.x - mx, dy = p.y - my;
+    const d2 = dx*dx + dy*dy;
+    if(d2 < bestDist){ bestDist = d2; best = p; }
+  }
+  const r = 9 * DPR; // hit radius
+  return (best && Math.sqrt(bestDist) <= r) ? best : null;
+}
+chartCanvas.addEventListener('mousemove', (e)=>{
+  const hit = findNearestPoint(e.clientX, e.clientY);
+  chartCanvas.style.cursor = hit ? 'pointer' : 'default';
+});
+chartCanvas.addEventListener('click', (e)=>{
+  const hit = findNearestPoint(e.clientX, e.clientY);
+  if(!hit){ chartTip.style.display='none'; return; }
+  const d = new Date(hit.row.dateISO);
+  const detail = `${d.toLocaleDateString()} • ${fmtSec(hit.row.timeSec)} • pace ${paceMinPerKm(hit.row.timeSec, (state.tracks.find(t=>t.id===hit.row.trackId)||{}).distanceKm || 1)}/km`;
+  chartTip.textContent = detail;
+  chartTip.style.left = `${e.clientX}px`;
+  chartTip.style.top  = `${e.clientY}px`;
+  chartTip.style.display = 'block';
+});
+chartCanvas.addEventListener('mouseleave', ()=>{ chartTip.style.display='none'; });
+window.addEventListener('scroll', ()=>{ chartTip.style.display='none'; }, {passive:true});
+
+/***********************
+ * Render router
+ ***********************/
 function render(){
   const cur=Router.current();
   Object.entries(views).forEach(([k,el])=> el.classList.toggle('hidden', k!==cur));
@@ -625,7 +771,7 @@ function render(){
 // Boot
 render();
 connectCloud(); // auto-connect with saved/default code
-window.addEventListener('resize', ()=>{ if(Router.current()==='stats') renderStats(); });
+window.addEventListener('resize', ()=>{ if(Router.current()==='stats') renderStats(); chartTip.style.display='none'; });
 </script>
 </body>
 </html>
