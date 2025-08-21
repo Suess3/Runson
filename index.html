@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Runson</title>
 
-  <!-- Optional fancy font for background watermark (kept from your version) -->
+  <!-- Handwritten font for background watermark -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
@@ -17,40 +17,30 @@
     <header class="app-header">
       <h1>🏃‍♂️ Runson</h1>
       <nav class="nav">
-        <button class="btn" id="navHome" onclick="location.hash='#home'">Home</button>
-        <button class="btn" id="navRun" onclick="location.hash='#run'">Run</button>
-        <button class="btn" id="navStats" onclick="location.hash='#stats'">Stats</button>
-        <button class="btn" id="navTracks" onclick="location.hash='#tracks'">Tracks</button>
+        <button class="btn" id="navHome">Home</button>
+        <button class="btn" id="navRun">Run</button>
+        <button class="btn" id="navStats">Stats</button>
+        <button class="btn" id="navTracks">Tracks</button>
         <span id="syncChip" class="chip hidden" title="Connected to cloud">✓ Synced</span>
       </nav>
     </header>
 
-    <!-- ================= HOME ================= -->
+    <!-- HOME -->
     <section id="view-home" class="panel" data-view="home">
-      <p class="muted" style="margin:0 0 8px">
-        Data is stored locally and can be synced via Firebase.
-      </p>
-
+      <p class="muted" style="margin:0 0 8px">Data is stored automaticall by default via Firebase.</p>
       <details open>
         <summary style="cursor:pointer; font-weight:700">☁️ Cloud Sync</summary>
-        <p class="muted" style="margin:8px 0">
-          Hint: with the sync code <strong>“Run”</strong> the data is synced across devices.
-        </p>
+        <p class="muted" style="margin:8px 0">Hint: with the sync code <strong>“Run”</strong> the data is synced across devices.</p>
         <label for="syncCode">Sync code</label>
         <input id="syncCode" placeholder="e.g. Run" />
         <div class="row" style="margin-top:6px">
-          <button class="btn primary" id="connectCloudBtn">Connect &amp; Sync</button>
+          <button class="btn primary" id="connectCloudBtn">Connect & Sync</button>
           <div id="cloudMsg" class="muted" style="padding-left:6px"></div>
         </div>
       </details>
-
-      <!-- Your image (put file at js/home-hero.png) -->
-      <figure class="home-art">
-        <img src="./js/home-hero.png" alt="Runner on a forest trail at sunrise" loading="lazy">
-      </figure>
     </section>
 
-    <!-- ================= RUN ================= -->
+    <!-- RUN -->
     <section id="view-run" class="panel hidden" data-view="run">
       <div class="row">
         <div class="grow">
@@ -76,22 +66,21 @@
           <label for="pace">Pace (min/km)</label>
           <input id="pace" disabled>
         </div>
-        <div class="grow">
+        <div style="width:170px">
           <label for="dateInput">Date</label>
           <input id="dateInput" type="date">
         </div>
       </div>
+      <label for="noteInput">Note</label>
+      <textarea id="noteInput" placeholder="optional"></textarea>
 
-      <label for="noteInput">Note (optional)</label>
-      <textarea id="noteInput" placeholder="How did it feel? Weather? Shoes?"></textarea>
-
-      <div class="row" style="align-items:center; margin-top:8px">
+      <div class="row" style="margin-top:6px">
         <button class="btn primary" id="saveRunBtn">Save run</button>
-        <span id="saveRunMsg" class="muted"></span>
+        <div id="saveMsg" class="muted" aria-live="polite" style="padding-left:6px"></div>
       </div>
     </section>
 
-    <!-- ================= STATS ================= -->
+    <!-- STATS -->
     <section id="view-stats" class="panel hidden" data-view="stats">
       <div class="row">
         <div class="grow">
@@ -119,8 +108,6 @@
         <div id="chartTip"></div>
       </div>
 
-      <!-- The progress battery is injected by JS below the chart -->
-
       <div class="table-wrap" style="margin-top:10px">
         <table>
           <thead>
@@ -138,29 +125,29 @@
       </div>
     </section>
 
-    <!-- ================= TRACKS ================= -->
+    <!-- TRACKS -->
     <section id="view-tracks" class="panel hidden" data-view="tracks">
+      <h2 style="margin:0 0 8px">Tracks</h2>
       <div class="row">
         <div class="grow">
-          <label for="newTrackName">Track name</label>
-          <input id="newTrackName" placeholder="e.g. Trattbergrunde">
+          <label for="newTrackName">Name</label>
+          <input id="newTrackName">
         </div>
         <div style="width:160px">
           <label for="newTrackKm">Distance (km)</label>
-          <input id="newTrackKm" placeholder="2.10">
+          <input id="newTrackKm">
         </div>
       </div>
-
-      <div class="row" style="align-items:center; margin-top:8px">
+      <div class="row" style="margin-top:6px">
         <button class="btn primary" id="addTrackBtn">Add track</button>
-        <span id="trackMsg" class="muted"></span>
+        <div id="trackMsg" class="muted" style="padding-left:6px"></div>
       </div>
 
       <div class="table-wrap" style="margin-top:10px">
         <table>
           <thead>
             <tr>
-              <th>Track</th>
+              <th>Name</th>
               <th class="num">km</th>
               <th class="num">runs</th>
               <th class="col-act">Delete</th>
@@ -171,6 +158,7 @@
       </div>
     </section>
   </div>
+
 
   <script type="module" src="js/main.js"></script>
 </body>
