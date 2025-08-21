@@ -1,3 +1,5 @@
+// --- keep your imports and top-of-file as-is ---
+
 export function initStatsView(sectionEl){
   els = {
     wrap:          sectionEl,
@@ -13,7 +15,7 @@ export function initStatsView(sectionEl){
     runsTableBody: $('#runsTable', sectionEl)
   };
 
-  // 🔧 react to dropdown changes (switch KPI/table/chart to chosen track)
+  // Switch diagram/KPIs/table when the dropdown changes
   on(els.trackSelect, 'change', () => {
     els.chartTip.style.display = 'none';
     renderStats();
@@ -27,15 +29,15 @@ export function initStatsView(sectionEl){
 }
 
 export function renderStatsView(){
-  // 🔧 preserve current selection across any re-render (e.g. resize, cloud sync)
+  // Preserve user choice across re-renders (resize, cloud sync, etc.)
   const previouslySelected = els.trackSelect?.value || '';
 
-  // rebuild options
+  // Rebuild options to match however many tracks you have
   els.trackSelect.innerHTML = state.tracks
     .map(t => `<option value="${t.id}">${t.name}</option>`)
     .join('');
 
-  // restore selection if still valid, otherwise default to first track
+  // Restore selection if still valid; otherwise default to first track
   const keep =
     previouslySelected && state.tracks.some(t => t.id === previouslySelected)
       ? previouslySelected
@@ -43,5 +45,6 @@ export function renderStatsView(){
 
   if (keep) els.trackSelect.value = keep;
 
+  // Draw exactly the selected track’s data
   renderStats();
 }
