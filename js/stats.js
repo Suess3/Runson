@@ -4,7 +4,8 @@
 import {
   $, on, state, update,
   fmtSec, fmtDate, fmtMonthYear,
-  paceMinPerKm, parseTimeToSec
+  paceMinPerKm, parseTimeToSec,
+  suggestedShortTimeForGoal
 } from './ui.js';
 import { pushToCloud } from './menu.js';
 
@@ -78,13 +79,17 @@ function renderStats(){
   const track = state.tracks.find(t=>t.id===id);
   const goalSecStored = state.goals[id];
 
+  // Suggest a goal for this track (placeholder), projecting to 9k/38:00
+  const suggested = track ? suggestedShortTimeForGoal(track.distanceKm) : NaN;
+  els.goalInput.placeholder = isFinite(suggested) ? fmtSec(Math.round(suggested)) : '09:00';
+
   // runs for selected track, sorted by date (ascending)
   const runs = state.runs
     .filter(r=>r.trackId===id)
     .slice()
     .sort((a,b)=> new Date(a.dateISO) - new Date(b.dateISO));
 
-  // Fill goal input
+  // Fill goal input (only the value; placeholder shows the suggestion)
   els.goalInput.value = isFinite(goalSecStored) ? fmtSec(goalSecStored) : '';
 
   // KPIs
@@ -397,5 +402,5 @@ function monthChanges(runs){
   });
   return out;
 }
-function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt','&gt'); }
 function cssVar(name, fallback){ const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; }
