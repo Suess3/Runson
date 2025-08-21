@@ -317,7 +317,7 @@ const palette = [
   "#7cb342", // green strong
   "#43a047", // dark green
   "#388e3c", // deeper green
-  "#2e7d32"  // darkest green
+  "#78d66d"  // darkest green
 ];
 
 for(let i=0;i<cells.length;i++){
