@@ -1,4 +1,3 @@
-// js/stats.js
 // Stats view: KPIs, table, canvas chart, and goal-progress battery
 
 import {
@@ -9,7 +8,7 @@ import {
 import { pushToCloud } from './menu.js';
 
 let els = {};
-let points = []; // [{x,y,run}] for hover/click
+let points = [];
 const PADDING = { l: 48, r: 18, t: 12, b: 28 };
 
 export function initStatsView(sectionEl){
@@ -21,12 +20,12 @@ export function initStatsView(sectionEl){
     bestTime:      $('#bestTime', sectionEl),
     avgTime:       $('#avgTime', sectionEl),
     lastTime:      $('#lastTime', sectionEl),
-    gapToGoal:     $('#gapToGoal', sectionEl),
+    gapTime:       $('#gapToGoal', sectionEl),
+    gapBox:        $('#kpiGap', sectionEl), // explicit target for fill
     chart:         $('#chart', sectionEl),
     chartTip:      $('#chartTip'),
     runsTableBody: $('#runsTable', sectionEl),
 
-    // created lazily for the battery:
     progressWrap:  null,
     progressCells: null,
     progressPct:   null,
@@ -49,7 +48,6 @@ export function renderStatsView(){
   renderStats();
 }
 
-// ---------- Actions ----------
 function onSaveGoal(){
   const id = currentTrackId();
   const sec = parseGoal(els.goalInput.value);
@@ -72,7 +70,6 @@ function onDeleteRun(e){
   renderStats();
 }
 
-// ---------- Render ----------
 function renderStats(){
   const id = currentTrackId();
   const track = state.tracks.find(t=>t.id===id);
@@ -80,11 +77,9 @@ function renderStats(){
     .filter(r=>r.trackId===id)
     .sort((a,b)=> new Date(a.dateISO) - new Date(b.dateISO));
 
-  // goal field (show stored, fallback blank)
   const goalSecStored = state.goals[id];
   els.goalInput.value = isFinite(goalSecStored) ? fmtSec(goalSecStored) : '';
 
-  // KPIs
   let last = NaN, best = NaN;
   if (runs.length){
     const times = runs.map(r=>r.timeSec);
@@ -99,24 +94,18 @@ function renderStats(){
     els.bestTime.textContent = els.avgTime.textContent = els.lastTime.textContent = '–';
   }
 
-  // Gap to goal text + color on KPI tile (USE BEST, not last)
-  const gapBox = els.gapToGoal.closest('.kpi');
-  gapBox.classList.remove('good','bad');
+  // Gap to goal: compute from BEST and fill the box
+  els.gapBox.classList.remove('good','bad');
   if (isFinite(goalSecStored) && runs.length){
-    const diff = best - goalSecStored; // ✅ compute from BEST time
-    els.gapToGoal.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
-    gapBox.classList.add(diff <= 0 ? 'good' : 'bad'); // green when at/under goal
+    const diff = best - goalSecStored;
+    els.gapTime.textContent = diff >= 0 ? `+${fmtSec(diff)}` : `-${fmtSec(-diff)}`;
+    els.gapBox.classList.add(diff <= 0 ? 'good' : 'bad');
   } else {
-    els.gapToGoal.textContent = '–';
+    els.gapTime.textContent = '–';
   }
 
-  // Chart (includes goal line in scale)
   drawChart(runs, track, goalSecStored);
-
-  // Progress battery (beneath chart)
   renderProgressBattery(runs, goalSecStored);
-
-  // Table (below battery)
   renderRunsTable(runs, track, goalSecStored);
 }
 
@@ -124,10 +113,7 @@ function renderRunsTable(runs, track, goalSec){
   els.runsTableBody.innerHTML = runs.map(r=>{
     const pace = track ? paceMinPerKm(r.timeSec, track.distanceKm) : '–';
     const delta = isFinite(goalSec)
-      ? (r.timeSec - goalSec >= 0
-          ? `+${fmtSec(r.timeSec-goalSec)}`
-          : `-${fmtSec(goalSec-r.timeSec)}`
-        )
+      ? (r.timeSec - goalSec >= 0 ? `+${fmtSec(r.timeSec-goalSec)}` : `-${fmtSec(goalSec-r.timeSec)}`)
       : '–';
     return `<tr>
       <td class="col-date">${fmtDate(r.dateISO)}</td>
@@ -140,7 +126,6 @@ function renderRunsTable(runs, track, goalSec){
   }).join('') || `<tr><td colspan="6" class="muted">No runs yet.</td></tr>`;
 }
 
-// ---------- Chart ----------
 function drawChart(runs, track, goalSec){
   const cvs = els.chart;
   const ctx = cvs.getContext('2d');
@@ -156,7 +141,6 @@ function drawChart(runs, track, goalSec){
   const x0 = PADDING.l, x1 = W - PADDING.r;
   const y0 = PADDING.t, y1 = H - PADDING.b;
 
-  // y-scale from min/max including goal
   const times = runs.map(r=>r.timeSec);
   if (isFinite(goalSec)) times.push(goalSec);
   const minT = Math.min(...times, isFinite(goalSec)?goalSec:Infinity);
@@ -168,17 +152,14 @@ function drawChart(runs, track, goalSec){
   const x = (i)=> x0 + ( (runs.length<=1?0:i/(runs.length-1)) * (x1-x0) );
   const y = (t)=> y1 - ( (t - ymin) / (ymax - ymin) ) * (y1 - y0);
 
-  // axes
   ctx.strokeStyle = '#dfe6ee';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.lineTo(x1,y1);
   ctx.stroke();
 
-  // goal line
   if (isFinite(goalSec)) drawGoalLine(ctx, x0, x1, y(goalSec));
 
-  // series
   ctx.strokeStyle = '#111';
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -190,7 +171,6 @@ function drawChart(runs, track, goalSec){
   });
   ctx.stroke();
 
-  // points
   ctx.fillStyle = '#111';
   points.forEach(p=>{
     ctx.beginPath();
@@ -202,22 +182,13 @@ function drawChart(runs, track, goalSec){
 function drawGoalLine(ctx, x0, x1, yline){
   ctx.save();
   ctx.lineCap = 'round';
-
-  // soft glow
-  ctx.lineWidth = 10;
-  ctx.strokeStyle = 'rgba(11,87,208,0.08)';
+  ctx.lineWidth = 10; ctx.strokeStyle = 'rgba(11,87,208,0.08)';
   ctx.beginPath(); ctx.moveTo(x0, yline); ctx.lineTo(x1, yline); ctx.stroke();
-
-  // main dashed line
-  ctx.setLineDash([6,6]);
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(11,87,208,0.6)';
+  ctx.setLineDash([6,6]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(11,87,208,0.6)';
   ctx.beginPath(); ctx.moveTo(x0, yline); ctx.lineTo(x1, yline); ctx.stroke();
-
   ctx.restore();
 }
 
-// ---------- Progress battery ----------
 function renderProgressBattery(runs, goalSec){
   const haveGoal = isFinite(goalSec);
   injectProgressCardIfNeeded();
@@ -238,7 +209,6 @@ function renderProgressBattery(runs, goalSec){
   const pct = Math.max(0, Math.min(100, Math.round(100 * goalSec / best)));
   els.progressPct.textContent = pct + '%';
 
-  // fill cells up to pct
   const toFill = Math.round(cells.length * Math.min(100,pct)/100);
   for(let i=0;i<toFill;i++){
     cells[i].style.background = 'linear-gradient(#bcd8ff,#d9e6ff)';
@@ -253,7 +223,6 @@ function renderProgressBattery(runs, goalSec){
 
 function injectProgressCardIfNeeded(){
   if (els.progressWrap) return;
-
   const card = document.createElement('div');
   card.className = 'progress-card';
   card.innerHTML = `
@@ -283,32 +252,25 @@ function clearCells(nodes){
   }
 }
 
-// ---------- Chart interactions ----------
+/* interactions */
 function onChartHover(ev){
   if(!points.length) return;
   const rect = els.chart.getBoundingClientRect();
   const mx = ev.clientX - rect.left;
-
-  // nearest by x
   let best = null, bestDx = Infinity;
   for(const p of points){
     const dx = Math.abs(p.x - mx);
     if(dx < bestDx){ bestDx = dx; best = p; }
   }
-  if(!best) { els.chartTip.style.display='none'; return; }
-
+  if(!best){ els.chartTip.style.display='none'; return; }
   els.chartTip.style.display = 'block';
-  els.chartTip.innerHTML = `
-    <div><strong>${fmtDate(best.run.dateISO)}</strong></div>
-    <div>Time: <span class="num">${fmtSec(best.run.timeSec)}</span></div>
-  `;
+  els.chartTip.innerHTML = `<div><strong>${fmtDate(best.run.dateISO)}</strong></div>
+    <div>Time: <span class="num">${fmtSec(best.run.timeSec)}</span></div>`;
   els.chartTip.style.left = best.x + 'px';
   els.chartTip.style.top = best.y + 'px';
 }
+function onChartClick(){}
 
-function onChartClick(){ /* reserved for future */ }
-
-// ---------- Utils ----------
 function currentTrackId(){ return els.trackSelect.value || state.tracks[0]?.id; }
 function parseGoal(v){
   const s = String(v||'').trim();
@@ -316,13 +278,8 @@ function parseGoal(v){
   const parts = s.split(':').map(Number);
   if(parts.length===2) return parts[0]*60 + parts[1];
   if(parts.length===3) return parts[0]*3600 + parts[1]*60 + parts[2];
-  // allow plain minutes
   const n = Number(s.replace(',','.')); return isFinite(n) ? Math.round(n*60) : NaN;
 }
-
 function escapeHtml(s){
-  return String(s)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;');
+  return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 }
