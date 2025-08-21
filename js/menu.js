@@ -1,5 +1,5 @@
 // Sync UI + Firebase connect/push + “✓ Synced” chip
-import { $, on, state, update, getState, current, go } from './ui.js';
+import { $, on, state, update, getState, go } from './ui.js';
 
 // Firebase (CDN modules)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -41,15 +41,11 @@ export function initMenu(){
     await connectCloud();
   });
 
-  // Show/hide persistent chip based on state
+  // Persistent ✓ chip visibility is toggled whenever state.sync.connected changes
   const syncChip = $('#syncChip');
   const updateChip = () => syncChip?.classList.toggle('hidden', !state.sync.connected);
   updateChip();
-  // subscribe via a Mutation - but we can just poll notify hook:
-  const obs = new MutationObserver(updateChip);
-  obs.observe(document.body,{subtree:false, childList:false}); // dummy to keep reference (not strictly needed)
-  // alternatively, just tie into our state changes:
-  // handled in main.js via subscribe(render)
+  // main.js also re-renders on state changes; this keeps chip in sync.
 }
 
 export async function connectCloud(){
