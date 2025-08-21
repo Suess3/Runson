@@ -306,14 +306,28 @@ function renderProgressBattery(runs, goalSecStored){
   // fill cells (ensure at least one visible)
   const cells = els.progressCells.children;
   const fillCount = Math.max(1, Math.ceil(frac * 10));
-  for(let i=0;i<cells.length;i++){
-    const cell = cells[i];
-    const hue = Math.round((i / 9) * 120); // red->green
-    const color = `hsl(${hue}deg 80% 45%)`;
-    cell.style.backgroundColor = color;
-    cell.style.borderColor = color;
-    cell.classList.toggle('filled', i < fillCount);
-  }
+  // Handpicked color palette from red → yellow → green
+const palette = [
+  "#e74c3c", // red
+  "#e67e22", // orange
+  "#f39c12", // amber
+  "#f1c40f", // yellow
+  "#d4e157", // light green
+  "#9ccc65", // green mid
+  "#7cb342", // green strong
+  "#43a047", // dark green
+  "#388e3c", // deeper green
+  "#2e7d32"  // darkest green
+];
+
+for(let i=0;i<cells.length;i++){
+  const cell = cells[i];
+  const color = palette[i];
+  cell.style.backgroundColor = color;
+  cell.style.borderColor = color;
+  cell.classList.toggle('filled', i < fillCount);
+}
+
 
   // header and minimal legend (as requested: no Baseline/Best/Remaining details)
   els.progressPct.textContent = `${pct}%`;
