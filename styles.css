@@ -1,3 +1,5 @@
+/* styles.css — full app styles */
+
 /* ---------- Theme tokens ---------- */
 :root{
   --bg: #f4f8fb;
@@ -76,14 +78,17 @@ textarea{ min-height:70px; resize:vertical; }
 .kpi .label{ color:var(--muted); font-size:.95rem; }
 .kpi .value{ font-size:1.35rem; font-weight:700; }
 
-/* FILLED variants – stronger specificity for the gap box */
-.kpi.good{ background:#eaf8ef; border-color:#b7e3c0; }
-.kpi.bad { background:#fff1f1; border-color:#f2bcbc; }
+/* FILLED variants (your request) */
+.kpi.good{
+  background:#eaf8ef;            /* light green fill */
+  border-color:#b7e3c0;
+}
+.kpi.bad{
+  background:#fff1f1;             /* light red fill */
+  border-color:#f2bcbc;
+}
 .kpi.good .value{ color:#0f6a2a; }
 .kpi.bad  .value{ color:#8b1e1e; }
-/* Make sure the specific gap box wins even if other styles exist */
-#kpiGap.good{ background:#eaf8ef; border-color:#b7e3c0; }
-#kpiGap.bad { background:#fff1f1; border-color:#f2bcbc; }
 
 /* ---------- Chart ---------- */
 .chart-wrap{
@@ -150,17 +155,9 @@ tbody tr:hover{ background:#fafcff; }
 }
 .progress-meta b{ color: var(--ink); }
 
-/* ---------- Home image (smaller, centered) ---------- */
-.home-art{
-  margin:12px auto 0;
-  display:flex;
-  justify-content:center;
-}
+/* ---------- Home image ---------- */
+.home-art{ margin-top:12px; }
 .home-art img{
-  width: min(380px, 88%);   /* responsive, capped */
-  margin: 0 auto;
-  height:auto;
-  display:block;
-  border-radius:12px;
-  border:1px solid var(--line);
+  width:100%; height:auto; display:block;
+  border-radius:12px; border:1px solid var(--line);
 }
