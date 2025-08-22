@@ -200,7 +200,7 @@ tbody tr:hover{ background:#fafcff; }
 }
 .progress-meta b{ color: var(--ink); }
 
-/* ---------- Home image ---------- */
+/* ---------- Home image (default) ---------- */
 .home-img-wrap{
   margin: 0 auto 24px;
   text-align: center;
@@ -208,8 +208,40 @@ tbody tr:hover{ background:#fafcff; }
   padding: 0 16px;
 }
 .home-img{
-  max-width: 200px; /* slightly smaller */
+  max-width: 200px;
   width: 50%;
   border-radius: 12px;
   opacity: 0.95;
+}
+
+/* ---------- Home hero placed visually BELOW the home card ---------- */
+#view-home.panel{
+  position: relative;
+  padding-bottom: 240px; /* space reserved for the image below */
+}
+
+#view-home .home-img-wrap{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -220px;          /* pushes the image below the card */
+  margin: 0 auto;
+  text-align: center;
+  pointer-events: none;    /* decorative */
+  padding: 0;              /* override earlier padding */
+  max-width: none;
+}
+
+#view-home .home-img{
+  width: min(520px, 90%);
+  max-width: 520px;
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.16);
+  opacity: 1;
+}
+
+@media (max-width: 640px){
+  #view-home.panel{ padding-bottom: 180px; }
+  #view-home .home-img-wrap{ bottom: -160px; }
+  #view-home .home-img{ width: min(420px, 92%); }
 }
