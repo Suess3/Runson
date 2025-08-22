@@ -216,7 +216,7 @@ tbody tr:hover{ background:#fafcff; }
   position: absolute;
   left: 0;               /* keep aligned with the card's left edge */
   right: 0;
-  bottom: -260px;        /* moved up (less negative) */
+  bottom: -160px;        /* moved up (less negative) */
   text-align: center;
   pointer-events: none;
 }
