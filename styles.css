@@ -225,7 +225,7 @@ tbody tr:hover{ background:#fafcff; }
   position: absolute;
   left: 16px;                             /* an Karten-Inhalt ausrichten */
   right: auto;
-  bottom: -120px;                         /* knapp unter dem Kasten */
+  bottom: -12px;                         /* knapp unter dem Kasten */
   margin: 0;
   text-align: left;
   pointer-events: none;                   /* rein dekorativ */
