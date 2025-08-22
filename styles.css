@@ -200,7 +200,7 @@ tbody tr:hover{ background:#fafcff; }
 }
 .progress-meta b{ color: var(--ink); }
 
-/* ---------- Home image (default) ---------- */
+/* ---------- Home image (fallback sizes) ---------- */
 .home-img-wrap{
   margin: 0 auto 24px;
   text-align: center;
@@ -214,34 +214,41 @@ tbody tr:hover{ background:#fafcff; }
   opacity: 0.95;
 }
 
-/* ---------- Home hero placed visually BELOW the home card ---------- */
+/* ---------- Home hero visually BELOW the home card ---------- */
 #view-home.panel{
   position: relative;
-  padding-bottom: 240px; /* space reserved for the image below */
+  padding-bottom: 140px;                  /* Platz für das Bild unterhalb */
 }
 
+/* Desktop/Tablet: linksbündig, kleiner und nah am Kasten */
 #view-home .home-img-wrap{
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -220px;          /* pushes the image below the card */
-  margin: 0 auto;
-  text-align: center;
-  pointer-events: none;    /* decorative */
-  padding: 0;              /* override earlier padding */
+  left: 16px;                             /* an Karten-Inhalt ausrichten */
+  right: auto;
+  bottom: -120px;                         /* knapp unter dem Kasten */
+  margin: 0;
+  text-align: left;
+  pointer-events: none;                   /* rein dekorativ */
+  padding: 0;
   max-width: none;
 }
 
 #view-home .home-img{
-  width: min(520px, 90%);
-  max-width: 520px;
+  width: 320px;                           /* deutlich kleiner */
+  max-width: 55vw;                        /* Safety auf schmaleren Screens */
   border-radius: 14px;
   box-shadow: 0 12px 28px rgba(0,0,0,.16);
   opacity: 1;
 }
 
-@media (max-width: 240px){
-  #view-home.panel{ padding-bottom: 180px; }
-  #view-home .home-img-wrap{ bottom: -160px; }
-  #view-home .home-img{ width: min(420px, 92%); }
+/* Phone: zentrieren und noch kleiner */
+@media (max-width: 640px){
+  #view-home.panel{ padding-bottom: 140px; }
+  #view-home .home-img-wrap{
+    left: 0; right: 0; bottom: -120px; text-align: center;
+  }
+  #view-home .home-img{
+    width: 260px;
+    max-width: 84%;
+  }
 }
