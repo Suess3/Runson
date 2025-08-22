@@ -200,45 +200,41 @@ tbody tr:hover{ background:#fafcff; }
 }
 .progress-meta b{ color: var(--ink); }
 
-/* ---------- Home image (fallback sizes) ---------- */
-.home-img-wrap{
-  margin: 0 auto 24px;
-  text-align: center;
-  max-width: 900px;
-  padding: 0 16px;
-}
-.home-img{
-  max-width: 200px;
-  width: 50%;
-  border-radius: 12px;
-  opacity: 0.95;
-}
-
-/* === Home hero: smaller & clearly below the white box === */
+/* === Home: smaller white box + picture a bit higher === */
 #view-home.panel{
+  /* make the white card narrower and left-aligned */
+  max-width: 620px;      /* <- tweak this width if you want */
+  margin-left: 0;
+  margin-right: auto;
+
+  /* keep the picture below the card */
   position: relative;
-  padding-bottom: 340px;         /* reserve enough space so nothing overlaps */
+  padding-bottom: 280px; /* reserve space for the image */
 }
 
 #view-home .home-img-wrap{
   position: absolute;
-  left: 0;
+  left: 0;               /* keep aligned with the card's left edge */
   right: 0;
-  bottom: -320px;                /* push the image below the card */
+  bottom: -260px;        /* moved up (less negative) */
   text-align: center;
-  pointer-events: none;          /* decorative only */
+  pointer-events: none;
 }
 
 #view-home .home-img{
-  width: 240px;                  /* smaller */
+  width: 220px;          /* smaller image; adjust as you like */
   height: auto;
   border-radius: 12px;
   box-shadow: 0 10px 24px rgba(0,0,0,.18);
 }
 
-/* Phone tweaks */
+/* Phone: full-width card again, slightly smaller picture */
 @media (max-width: 640px){
-  #view-home.panel{ padding-bottom: 260px; }
-  #view-home .home-img-wrap{ bottom: -240px; }
+  #view-home.panel{
+    max-width: none;
+    margin: 0;
+    padding-bottom: 220px;
+  }
+  #view-home .home-img-wrap{ bottom: -200px; }
   #view-home .home-img{ width: 200px; }
 }
