@@ -240,7 +240,7 @@ tbody tr:hover{ background:#fafcff; }
   opacity: 1;
 }
 
-@media (max-width: 640px){
+@media (max-width: 240px){
   #view-home.panel{ padding-bottom: 180px; }
   #view-home .home-img-wrap{ bottom: -160px; }
   #view-home .home-img{ width: min(420px, 92%); }
