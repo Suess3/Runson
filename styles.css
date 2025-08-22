@@ -214,41 +214,31 @@ tbody tr:hover{ background:#fafcff; }
   opacity: 0.95;
 }
 
-/* ---------- Home hero visually BELOW the home card ---------- */
+/* === Home hero: smaller & clearly below the white box === */
 #view-home.panel{
   position: relative;
-  padding-bottom: 140px;                  /* Platz für das Bild unterhalb */
+  padding-bottom: 340px;         /* reserve enough space so nothing overlaps */
 }
 
-/* Desktop/Tablet: linksbündig, kleiner und nah am Kasten */
 #view-home .home-img-wrap{
   position: absolute;
-  left: 16px;                             /* an Karten-Inhalt ausrichten */
-  right: auto;
-  bottom: -12px;                         /* knapp unter dem Kasten */
-  margin: 0;
-  text-align: left;
-  pointer-events: none;                   /* rein dekorativ */
-  padding: 0;
-  max-width: none;
+  left: 0;
+  right: 0;
+  bottom: -320px;                /* push the image below the card */
+  text-align: center;
+  pointer-events: none;          /* decorative only */
 }
 
 #view-home .home-img{
-  width: 320px;                           /* deutlich kleiner */
-  max-width: 55vw;                        /* Safety auf schmaleren Screens */
-  border-radius: 14px;
-  box-shadow: 0 12px 28px rgba(0,0,0,.16);
-  opacity: 1;
+  width: 240px;                  /* smaller */
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
 }
 
-/* Phone: zentrieren und noch kleiner */
+/* Phone tweaks */
 @media (max-width: 640px){
-  #view-home.panel{ padding-bottom: 140px; }
-  #view-home .home-img-wrap{
-    left: 0; right: 0; bottom: -120px; text-align: center;
-  }
-  #view-home .home-img{
-    width: 260px;
-    max-width: 84%;
-  }
+  #view-home.panel{ padding-bottom: 260px; }
+  #view-home .home-img-wrap{ bottom: -240px; }
+  #view-home .home-img{ width: 200px; }
 }
