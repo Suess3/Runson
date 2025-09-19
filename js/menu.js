@@ -1,4 +1,4 @@
-// Sync UI + Firebase connect/push + “✓ Synced” chip
+// js/menu.js — secure version for rules on runtracker/{code}
 import { $, on, state, update, getState, go } from './ui.js';
 
 // Firebase (CDN modules)
@@ -19,7 +19,7 @@ const firebaseConfig = {
 };
 
 function ensureFirebase(){
-  if(app) return;
+  if (app) return;
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db   = getFirestore(app);
@@ -34,58 +34,102 @@ export function initMenu(){
 
   // Sync UI
   const syncCodeInput = $('#syncCode');
-  if(syncCodeInput) syncCodeInput.value = state.sync.code || 'Run';
+  if (syncCodeInput) syncCodeInput.value = state.sync.code || 'Run';
   on($('#connectCloudBtn'), 'click', async ()=>{
-    const code = (syncCodeInput?.value||'Run').trim() || 'Run';
+    const code = (syncCodeInput?.value || 'Run').trim() || 'Run';
     update(s => { s.sync.code = code; s.sync.connected = false; });
     await connectCloud();
   });
 
-  // Persistent ✓ chip visibility is toggled whenever state.sync.connected changes
+  // “✓ Synced” chip reacts to state
   const syncChip = $('#syncChip');
   const updateChip = () => syncChip?.classList.toggle('hidden', !state.sync.connected);
   updateChip();
-  // main.js also re-renders on state changes; this keeps chip in sync.
 }
 
 export async function connectCloud(){
   ensureFirebase();
   const cloudMsg = $('#cloudMsg');
   const code = (state.sync.code || 'Run').trim() || 'Run';
+
   try{
     await signInAnonymously(auth);
-    if(unsub) unsub();
+    const uid = auth.currentUser.uid;
+
+    if (unsub) unsub();
     docRef = doc(db, 'runtracker', code);
-    unsub = onSnapshot(docRef, snap => {
-      if(!snap.exists()){
-        const s = getState();
-        setDoc(docRef, { tracks: s.tracks, runs: s.runs, goals: s.goals, updatedAt: serverTimestamp() });
-        cloudMsg.textContent = 'Created cloud doc. Synced.'; setTimeout(()=>cloudMsg.textContent='', 1500);
-      }else{
+
+    // Real-time listener with error handler (permission, etc.)
+    unsub = onSnapshot(
+      docRef,
+      async (snap) => {
+        if (!snap.exists()) {
+          // First writer becomes owner; create required fields to satisfy rules
+          const s = getState();
+          await setDoc(docRef, {
+            owner: uid,
+            members: [uid], // creator is first member
+            tracks: Array.isArray(s.tracks) ? s.tracks : [],
+            runs:   Array.isArray(s.runs)   ? s.runs   : [],
+            goals:  (s.goals && typeof s.goals === 'object') ? s.goals : {},
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          cloudMsg.textContent = 'Created cloud doc. Synced.';
+          setTimeout(()=> cloudMsg.textContent = '', 1500);
+          update(s=>{ s.sync.connected = true; });
+          $('#syncChip')?.classList.remove('hidden');
+          return;
+        }
+
         const cloud = snap.data();
-        if(cloud && cloud.tracks && cloud.runs && cloud.goals){
+
+        // Enforce same access logic client-side (matches rules)
+        const isOwner  = cloud.owner === uid;
+        const isMember = Array.isArray(cloud.members) && cloud.members.includes(uid);
+        if (!(isOwner || isMember)) {
+          cloudMsg.textContent = 'No access to this sync code. Ask the owner to add you.';
+          update(s=>{ s.sync.connected = false; });
+          return;
+        }
+
+        if (cloud && cloud.tracks && cloud.runs && cloud.goals) {
           update(s=>{
             s.tracks = cloud.tracks;
             s.runs   = cloud.runs;
             s.goals  = cloud.goals;
           });
-          cloudMsg.textContent = 'Synced from cloud.'; setTimeout(()=>cloudMsg.textContent='', 1200);
+          cloudMsg.textContent = 'Synced from cloud.';
+          setTimeout(()=> cloudMsg.textContent = '', 1200);
         }
+
+        update(s=>{ s.sync.connected = true; });
+        $('#syncChip')?.classList.remove('hidden');
+      },
+      (err) => {
+        cloudMsg.textContent = (err?.code === 'permission-denied')
+          ? 'No access to this sync code.'
+          : ('Cloud error: ' + (err?.message || err));
+        update(s=>{ s.sync.connected = false; });
       }
-      // mark connected and show chip
-      update(s=>{ s.sync.connected = true; });
-      const chip = $('#syncChip'); chip?.classList.remove('hidden');
-    });
+    );
   }catch(e){
-    if(cloudMsg) cloudMsg.textContent = 'Cloud error: ' + (e?.message||e);
+    if (cloudMsg) cloudMsg.textContent = 'Cloud error: ' + (e?.message || e);
+    update(s=>{ s.sync.connected = false; });
   }
 }
 
 export async function pushToCloud(){
-  if(!docRef) return; // not connected yet
+  if (!docRef) return; // not connected yet
   try{
     const s = getState();
-    await setDoc(docRef, { tracks:s.tracks, runs:s.runs, goals:s.goals, updatedAt: serverTimestamp() }, { merge:true });
+    // Do NOT include 'owner' here (rules forbid changing it)
+    await setDoc(docRef, {
+      tracks: s.tracks,
+      runs:   s.runs,
+      goals:  s.goals,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
   }catch(e){
     console.warn('pushToCloud error', e);
   }
